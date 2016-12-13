@@ -1,0 +1,6 @@
+cpu: 84.98256657378201 memory:29607.586603660224 throughput:[D@72e850b5 workers: 20 onBolt: 4 joinBolt: 11 spout: 4
+cpu: 84.0524754742408 memory:29508.900132166782 throughput:[D@3381a6fb workers: 20 onBolt: 4 joinBolt: 12 spout: 4
+cpu: 83.28923192319307 memory:29406.88523849478 throughput:[D@3f6590 workers: 20 onBolt: 4 joinBolt: 13 spout: 4
+cpu: 82.49588331364018 memory:29063.292255728607 throughput:[D@5ce94374 workers: 20 onBolt: 10 joinBolt: 17 spout: 4
+cpu: 81.7080029362354 memory:28620.501979761757 throughput:[D@6cb4cda4 workers: 20 onBolt: 10 joinBolt: 21 spout: 4
+cpu: 80.81804203753181 memory:28281.462196046574 throughput:[D@523c18b7 workers: 20 onBolt: 32 joinBolt: 20 spout: 4

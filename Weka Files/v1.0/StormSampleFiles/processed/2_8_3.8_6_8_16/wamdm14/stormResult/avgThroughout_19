@@ -1,0 +1,7 @@
+supervisors,cpucores,memory(G),workers,spouts,bolts
+2,8,3.8,6,8,16
+21 12:12,448
+21 12:17,10677
+21 12:22,3586
+21 12:27,5626
+21 12:32,10191
