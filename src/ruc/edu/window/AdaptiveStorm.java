@@ -133,7 +133,11 @@ public class AdaptiveStorm {
 		example.shutdown();
 	}
 
-	// consumer thread
+	/**
+	 * 处理kafka的中间结果 得到一系列metrics
+	 * @author hankwing
+	 *
+	 */
 	public class ConsumerTest implements Runnable {
 		private KafkaStream m_stream;
 		private int m_threadNumber;
@@ -341,7 +345,7 @@ public class AdaptiveStorm {
 						otherMetrics.put("latency", Math.round(stormUiMetrics.getSpoutLatency()) );
 						
 						// update the ml model according to new sample
-						//mlModel.updateModel(otherMetrics);
+						mlModel.updateModel(otherMetrics);
 						//CollectThroughputSamples.sampleFinished.release();
 						
 						mlModel.updateResult(datas[2], otherMetrics);
@@ -352,7 +356,7 @@ public class AdaptiveStorm {
 								+ "\n latency: " + otherMetrics.get("latency"));
 						
 						// choose better parameters
-						/*if (oldSpoutRate == 0 || Math.abs(oldSpoutRate
+						if (oldSpoutRate == 0 || Math.abs(oldSpoutRate
 								- spoutMetric.metricSum) / oldSpoutRate > 0.2) {
 							// need change storm parameters
 							double multiNumber = kafkaProducerThroughput / spoutMetric.metricSum ;
@@ -391,7 +395,7 @@ public class AdaptiveStorm {
 							
 							// change storm parameters according to results
 							changeStormParameters(result);
-						}*/
+						}
 						
 						thisTime = null;
 						// reset all metric
