@@ -1,4 +1,4 @@
-package ruc.edu.window;
+package ruc.edu.core;
 
 import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
@@ -340,8 +340,8 @@ public class Mlmodel {
 		int onBoltRate = dataRates[1];
 		int joinBoltRate = dataRates[2];
 		
-		System.out.println("get optimal: spout " + dataRates[0] + " onBolt " 
-		+ dataRates[1] + " joinBolt " + dataRates[2]);
+		//System.out.println("get optimal: spout " + dataRates[0] + " onBolt " 
+		//+ dataRates[1] + " joinBolt " + dataRates[2]);
 		int resultWorkerCount = 0;
 		int resultSpoutCount = 0;
 		int resultOnBoltCount = 0;
@@ -371,7 +371,7 @@ public class Mlmodel {
 			throughtputModel.buildClassifier(tempThroughputData);
 			Evaluation eval = new Evaluation(tempThroughputData);
 			eval.crossValidateModel(throughtputModel, tempThroughputData, 10, new Random(1));
-			System.out.println(eval.toSummaryString("\n model Results\n", false));
+			//System.out.println(eval.toSummaryString("\n model Results\n", false));
 			
 		} catch (Exception e2) {
 			// TODO Auto-generated catch block

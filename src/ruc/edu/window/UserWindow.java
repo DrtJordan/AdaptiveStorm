@@ -2,14 +2,19 @@ package ruc.edu.window;
 
 import java.awt.EventQueue;
 
+import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
 
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.RenderingHints;
 
 import javax.imageio.ImageIO;
@@ -46,40 +51,53 @@ import java.awt.Canvas;
 
 import javax.swing.JSpinner;
 import javax.swing.JComboBox;
+import javax.swing.text.DefaultCaret;
 
-public class UserWindow {
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.ValueAxis;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.DefaultXYItemRenderer;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
+import org.jfree.ui.ApplicationFrame;
+import org.jfree.ui.RefineryUtilities;
 
-	private static Mlmodel mlModel = null;
-	private JFrame frame;
-	private Tools tools = null;
-	private JTextField textField;
-	private JTextField textField_1;
-	private JTextField textField_2;
-	private JTextField textField_3;
-	private JTextField textField_4;
-	private JTextField textField_5;
-	private JTextField textField_6;
+import ruc.edu.components.MJFreeChartPanel;
+import ruc.edu.components.SettingPanel;
+import ruc.edu.core.AdaptiveStorm;
+import ruc.edu.core.Mlmodel;
+import ruc.edu.tools.AllTPCHProducer;
+import ruc.edu.tools.Tools;
+
+public class UserWindow  extends ApplicationFrame implements ActionListener {
+
+	private static final long serialVersionUID = -1479725239644074487L;
+	private static final String title = "Adaptive Storm";
+	public MJFreeChartPanel cpuChart;
+	public MJFreeChartPanel memoryChart;
+	public MJFreeChartPanel throughputChart;
+	public MJFreeChartPanel latencyChart;
+	private AdaptiveStorm adaptiveStorm;
 
 	/**
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					UserWindow window = new UserWindow();
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
+		
+		final UserWindow demo = new UserWindow(title);
+		demo.pack();
+        RefineryUtilities.centerFrameOnScreen(demo);
+        demo.setVisible(true);
 	}
 
 	/**
 	 * Create the application.
 	 */
-	public UserWindow() {
+	public UserWindow( final String title) {
+		super(title);
 		initialize();
 	}
 
@@ -87,237 +105,127 @@ public class UserWindow {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		mlModel = new Mlmodel();
-		tools = new Tools();
-		frame = new JFrame();
-		frame.setBounds(100, 100, 706, 479);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		JTabbedPane tp = new JTabbedPane();
-		frame.setContentPane(tp);
+		// 初始化AdaptiveStorm
+		adaptiveStorm = new AdaptiveStorm();
 
-		JPanel panel_setting = new JPanel();
-		JPanel panel_clusterCPU = new JPanel();
-		// JPanel panel_clusterMem = new JPanel();
-		// JPanel panel_throughput = new JPanel();
-		JPanel panel_latency = new JPanel();
+		// 所有pane的母pane tabbedPane
+		JTabbedPane tp = new JTabbedPane();
+		// 子pane
+		JPanel panel_setting_1 = new SettingPanel(adaptiveStorm);		// 设置panel
+		JPanel panel_setting_2 = new SettingPanel(adaptiveStorm);
+		JPanel panel_CPUMem = new JPanel(new BorderLayout());			// CPU Memory图panel
+		JPanel panel_latencyThrou = new JPanel(new BorderLayout());	// latency 
 		//tp.addTab("Setting", panel_setting);
-		tp.addTab("CPU/Memory", panel_clusterCPU);
+		tp.addTab("CPU/Memory", panel_CPUMem);
 		// tp.addTab("cluster Memory", panel_clusterMem);
 		// tp.addTab("throughput", panel_throughput);
-		tp.addTab("Throughput/Latency", panel_latency);
-
-		BufferedImage CPUImage;
-		BufferedImage memoryImage;
-		BufferedImage throughputImage;
-		BufferedImage latencyImage;
-		try {
-			CPUImage = ImageIO.read(new File("cpu.png"));
-			memoryImage = ImageIO.read(new File("memory.png"));
-			throughputImage = ImageIO.read(new File("throughput.png"));
-			throughputImage = resizeImage(throughputImage, 550, 341);
-			latencyImage = ImageIO.read(new File("latency.png"));
-			latencyImage = resizeImage(latencyImage, 550, 341);
-			memoryImage = resizeImage(memoryImage, 550, 341);
-			panel_clusterCPU.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
-			CPUImage = resizeImage(CPUImage, 550, 341);
-			JLabel picLabel = new JLabel(new ImageIcon(CPUImage));
-			panel_clusterCPU.add(panel_setting);
-			panel_clusterCPU.add(picLabel);
-			JLabel memLabel = new JLabel(new ImageIcon(memoryImage));
-			panel_clusterCPU.add(memLabel);
-
-			JLabel thrLabel = new JLabel(new ImageIcon(throughputImage));
-			panel_latency.add(thrLabel);
-			JLabel latLabel = new JLabel(new ImageIcon(latencyImage));
-			panel_latency.add(latLabel);
-
-		} catch (IOException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
-		// setting panel
-		JButton btnNewButton = new JButton("run storm topology");
-		btnNewButton.setBounds(30, 244, 141, 23);
-		btnNewButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				// run storm using shell
-				Process process = null;
-				List<String> processList = new ArrayList<String>();
-				try {
-					process = Runtime
-							.getRuntime()
-							.exec(new String[] {
-									"bash",
-									"-c",
-									"ssh wamdm7 \"source /etc/profile ; cd ~/wengzujian/ ;"
-											+ "storm jar StormTest-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
-											+ "storm.starter.TPCHQuery3 tpchquery 12 12 12 12 30 10 && exit\" " });
-					BufferedReader input = new BufferedReader(
-							new InputStreamReader(process.getInputStream()));
-					String line = "";
-					while ((line = input.readLine()) != null) {
-						processList.add(line);
-					}
-					input.close();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-
-				for (String templine : processList) {
-					System.out.println(templine);
-				}
-			}
-		});
-
-		JButton btnGetcpuusage = new JButton("getCPUUsage");
-		btnGetcpuusage.setBounds(180, 244, 99, 23);
-		btnGetcpuusage.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				try {
-					System.out.println("memory: " + tools.getMemoryUsage());
-				} catch (Exception e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			}
-		});
-
-		JButton btnNewButton_2 = new JButton("Get CPU/Memory");
-		btnNewButton_2.setBounds(40, 281, 117, 23);
-		btnNewButton_2.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				System.out.println("cpu:" + tools.getCpuUsage());
-				System.out.println("memory:" + tools.getMemoryUsage());
-			}
-		});
-
-		textField = new JTextField();
-		textField.setBounds(388, 293, 66, 21);
-		textField.setColumns(10);
-
-		textField_1 = new JTextField();
-		textField_1.setBounds(180, 293, 66, 21);
-		textField_1.setColumns(10);
-
-		textField_2 = new JTextField();
-		textField_2.setBounds(289, 282, 66, 21);
-		textField_2.setColumns(10);
-		panel_setting.setLayout(new GridLayout(3,4,20,20));
-		//panel_setting.add(btnGetcpuusage);
-		//panel_setting.add(btnNewButton);
-		//panel_setting.add(btnNewButton_2);
-		//panel_setting.add(textField);
-
-		JButton btnGetpredicted = new JButton("getPredicted");
-		btnGetpredicted.setBounds(289, 244, 105, 23);
-		btnGetpredicted.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-
-				int[] result = mlModel.getOptimalParameters(new int[] {
-						Integer.valueOf(textField.getText()),
-						Integer.valueOf(textField_1.getText()),
-						Integer.valueOf(textField_2.getText()) });
-				System.out.println("optimalResult:" + result[0] + " "
-						+ result[1] + " " + result[2] + " " + result[3]);
-			}
-		});
-
-		//panel_setting.add(btnGetpredicted);
-
-		JButton btnNewButton_1 = new JButton("run producer");
-		btnNewButton_1.setBounds(401, 244, 105, 23);
-		btnNewButton_1.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				// start producing data
-				AllTPCHProducer producer = new AllTPCHProducer();
-				producer.startProducing();
-			}
-		});
-		//panel_setting.add(btnNewButton_1);
-		//panel_setting.add(textField_1);
-		//panel_setting.add(textField_2);
+		tp.addTab("Throughput/Latency", panel_latencyThrou);
+		panel_CPUMem.add(panel_setting_1, BorderLayout.NORTH);
+		panel_latencyThrou.add(panel_setting_2, BorderLayout.NORTH);
 		
-		JLabel lblRegressionAlgorithm = new JLabel("Regression Algorithm:");
-		lblRegressionAlgorithm.setBounds(68, 92, 141, 15);
-		panel_setting.add(lblRegressionAlgorithm);
+		// 下面添加4个plots
+		cpuChart = new MJFreeChartPanel("CPU", "Utilization", "Tuples/s (x10K)");
+		memoryChart = new MJFreeChartPanel("Memory", "GB", "Tuples/s (x10K)");
+		throughputChart = new MJFreeChartPanel("Throughput", "Tuples/s (x10K)", null);
+		latencyChart = new MJFreeChartPanel("Latency", "ms", "Tuples/s (x10K)");
+		// 将两个图放进一个panel里 之后一起放入总panel里
+		JPanel cpuMemCharts = new JPanel();
+		cpuMemCharts.add(cpuChart.getChartPanel());
+		cpuMemCharts.add(memoryChart.getChartPanel());
+		panel_CPUMem.add(cpuMemCharts);
 		
-		JComboBox comboBox = new JComboBox(new String[]{"J48"});
-		comboBox.setBounds(214, 46, 99, 21);
-		panel_setting.add(comboBox);
+		JPanel thrLantCharts = new JPanel();
+		thrLantCharts.add(throughputChart.getChartPanel());
+		thrLantCharts.add(latencyChart.getChartPanel());
+		panel_latencyThrou.add(thrLantCharts);
 		
-		JLabel label = new JLabel("Classification Algorithm:");
-		label.setBounds(40, 49, 169, 15);
-		panel_setting.add(label);
+		// 4个log区域
+		JTextArea ta_1_storm = new JTextArea(7,10);
+		DefaultCaret dc_1_storm = (DefaultCaret)ta_1_storm.getCaret();
+		dc_1_storm.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		
-		JComboBox comboBox_1 = new JComboBox(new String[]{"Multilayer Perceptron"});
-		comboBox_1.setBounds(214, 89, 99, 21);
-		panel_setting.add(comboBox_1);
+		JTextArea ta_1_kafka = new JTextArea(7,10);
+		DefaultCaret dc_1_kafka = (DefaultCaret)ta_1_kafka.getCaret();
+		dc_1_kafka.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+
+		JTextArea ta_2_storm = new JTextArea(7, 10);
+		DefaultCaret dc_2_storm = (DefaultCaret)ta_2_storm.getCaret();
+		dc_2_storm.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		
-		JLabel lblNewLabel = new JLabel("Collecting Interval (Mins):");
-		lblNewLabel.setBounds(27, 137, 169, 15);
-		panel_setting.add(lblNewLabel);
+		JTextArea ta_2_kafka = new JTextArea(7, 10);
+		DefaultCaret dc_2_kafka = (DefaultCaret)ta_2_kafka.getCaret();
+		dc_2_kafka.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		
-		textField_3 = new JTextField("3");
-		textField_3.setBounds(213, 134, 100, 21);
-		panel_setting.add(textField_3);
-		textField_3.setColumns(10);
+		// log区域的style
+		ta_1_storm.setLineWrap(true);
+		ta_1_storm.setWrapStyleWord(true);
+        
+		ta_1_kafka.setLineWrap(true);
+		ta_1_kafka.setWrapStyleWord(true);
+        
+		ta_2_storm.setLineWrap(true);
+		ta_2_storm.setWrapStyleWord(true);
+        
+		ta_2_kafka.setLineWrap(true);
+		ta_2_kafka.setWrapStyleWord(true);
 		
-		JLabel label_1 = new JLabel("Threshold of Consuming Rate:");
-		label_1.setBounds(354, 52, 180, 15);
-		panel_setting.add(label_1);
+		// 在log外封装scroll控件
+		JScrollPane scroll1 = new JScrollPane(ta_1_storm);
+		JScrollPane scroll2 = new JScrollPane(ta_1_kafka);
+		JScrollPane scroll3 = new JScrollPane(ta_2_storm);
+		JScrollPane scroll4 = new JScrollPane(ta_2_kafka);
 		
-		textField_4 = new JTextField("20000");
-		textField_4.setBounds(544, 46, 99, 21);
-		panel_setting.add(textField_4);
-		textField_4.setColumns(10);
+		// 添加标题
+		scroll1.setBorder(
+	            BorderFactory.createCompoundBorder(
+	                BorderFactory.createCompoundBorder(
+	                                BorderFactory.createTitledBorder("Storm Consumer"),
+	                                BorderFactory.createEmptyBorder(3,5,3,5)),
+	                                scroll1.getBorder()));
+		scroll2.setBorder(
+	            BorderFactory.createCompoundBorder(
+	                BorderFactory.createCompoundBorder(
+	                                BorderFactory.createTitledBorder("Kafka Producer"),
+	                                BorderFactory.createEmptyBorder(3,5,3,5)),
+	                                scroll2.getBorder()));
+		scroll3.setBorder(
+	            BorderFactory.createCompoundBorder(
+	                BorderFactory.createCompoundBorder(
+	                                BorderFactory.createTitledBorder("Storm Consumer"),
+	                                BorderFactory.createEmptyBorder(3,5,3,5)),
+	                                scroll3.getBorder()));
+		scroll4.setBorder(
+	            BorderFactory.createCompoundBorder(
+	                BorderFactory.createCompoundBorder(
+	                                BorderFactory.createTitledBorder("Kafka Producer"),
+	                                BorderFactory.createEmptyBorder(3,5,3,5)),
+	                                scroll4.getBorder()));
 		
-		JLabel lblDistanceOfTwo = new JLabel("Distance of Two Checkpoints (Mins):");
-		lblDistanceOfTwo.setBounds(354, 92, 169, 15);
-		panel_setting.add(lblDistanceOfTwo);
+		// 两两放入临时panel里
+		JPanel tempPanel1 = new JPanel(new GridLayout(1,2));
+		tempPanel1.add(scroll1);
+		tempPanel1.add(scroll2);
 		
-		textField_5 = new JTextField("2");
-		textField_5.setBounds(544, 89, 99, 21);
-		panel_setting.add(textField_5);
-		textField_5.setColumns(10);
+		JPanel tempPanel2 = new JPanel(new GridLayout(1,2));
+		tempPanel2.add(scroll3);
+		tempPanel2.add(scroll4);
 		
-		JLabel lblLatencyDeadline = new JLabel("Latency Deadline:");
-		lblLatencyDeadline.setBounds(354, 137, 169, 15);
-		panel_setting.add(lblLatencyDeadline);
+		panel_CPUMem.add(tempPanel1, BorderLayout.SOUTH);
+		panel_latencyThrou.add(tempPanel2, BorderLayout.SOUTH);
 		
-		textField_6 = new JTextField("2000");
-		textField_6.setBounds(544, 134, 99, 21);
-		panel_setting.add(textField_6);
-		textField_6.setColumns(10);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		// 设置内容pane为tp
+		setContentPane(tp);
+		
+		// ********************界面部分结束*********************
+		// 向adaptiveStorm里传入log控件
+		adaptiveStorm.setLogPanels(new JTextArea[]{ta_1_storm, ta_1_kafka, ta_2_storm, ta_2_kafka});
+		
 	}
 
-	public static double getProcessCpuLoad() throws Exception {
-
-		MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-		ObjectName name = ObjectName
-				.getInstance("java.lang:type=OperatingSystem");
-		AttributeList list = mbs.getAttributes(name,
-				new String[] { "ProcessCpuLoad" });
-
-		if (list.isEmpty())
-			return Double.NaN;
-
-		Attribute att = (Attribute) list.get(0);
-		Double value = (Double) att.getValue();
-
-		// usually takes a couple of seconds before we get real values
-		if (value == -1.0)
-			return Double.NaN;
-		// returns a percentage value with 1 decimal point precision
-		return ((int) (value * 1000) / 10.0);
-	}
-
-	private static BufferedImage resizeImage(BufferedImage image, int width, int height) {
-		BufferedImage bi = new BufferedImage(width, height, BufferedImage.TRANSLUCENT);
-	    Graphics2D g2d = (Graphics2D) bi.createGraphics();
-	    g2d.addRenderingHints(new RenderingHints(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY));
-	    g2d.drawImage(image, 0, 0, width, height, null);
-	    g2d.dispose();
-		return bi;
-	}
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		
+	} 
 }

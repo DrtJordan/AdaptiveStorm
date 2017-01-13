@@ -46,6 +46,10 @@ import java.awt.Canvas;
 import javax.swing.JSpinner;
 import javax.swing.JComboBox;
 
+import ruc.edu.core.Mlmodel;
+import ruc.edu.tools.AllTPCHProducer;
+import ruc.edu.tools.Tools;
+
 public class TestWindow {
 
 	private static Mlmodel mlModel = null;
