@@ -40,9 +40,11 @@
 
 package ruc.edu.window;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
+import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -56,6 +58,7 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.DefaultXYItemRenderer;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.time.Millisecond;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
@@ -99,20 +102,36 @@ public class DynamicDataDemo2 extends ApplicationFrame implements ActionListener
         chart.setBackgroundPaint(Color.white);
         
         final XYPlot plot = chart.getXYPlot();
-        plot.setBackgroundPaint(Color.lightGray);
-        plot.setDomainGridlinePaint(Color.white);
-        plot.setRangeGridlinePaint(Color.white);
+        plot.setBackgroundPaint(Color.white);
+        plot.setDomainGridlinePaint(Color.gray);
+        plot.setRangeGridlinePaint(Color.gray);
   //      plot.setAxisOffset(new Spacer(Spacer.ABSOLUTE, 4, 4, 4, 4));
         final ValueAxis axis = plot.getDomainAxis();
         axis.setAutoRange(true);
-        axis.setFixedAutoRange(60000.0);  // 60 seconds
+        //axis.setFixedAutoRange(60000.0);  // 60 seconds
 
         plot.setDataset(1, dataset2);
-        final NumberAxis rangeAxis2 = new NumberAxis("Range Axis 2");
-        rangeAxis2.setAutoRangeIncludesZero(false);
+        //final NumberAxis rangeAxis2 = new NumberAxis("Range Axis 2");
+       /// rangeAxis2.setAutoRangeIncludesZero(false);
+        plot.setRenderer(0, new DefaultXYItemRenderer());
         plot.setRenderer(1, new DefaultXYItemRenderer());
-        plot.setRangeAxis(1, rangeAxis2);
-        plot.mapDatasetToRangeAxis(1, 1);
+        
+        //plot.setRangeAxis(1, rangeAxis2);
+        plot.mapDatasetToRangeAxis(1, 0);
+        
+        plot.getRenderer().setSeriesPaint(0, new Color(91, 155, 213));
+        plot.getRenderer(1).setSeriesPaint(0, Color.BLUE);
+        
+        XYLineAndShapeRenderer render2 = new XYLineAndShapeRenderer(){
+        	Stroke soild = new BasicStroke(2.0f);
+        	Stroke dashed =  new BasicStroke(10.0f,BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {10.0f}, 0.0f);
+        	@Override
+        	public Stroke getItemStroke(int row, int column) {
+        	return dashed;
+        }
+        };
+    
+    	plot.setRenderer(1, render2);
         
         final JPanel content = new JPanel(new BorderLayout());
 

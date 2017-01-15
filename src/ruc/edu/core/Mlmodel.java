@@ -348,9 +348,13 @@ public class Mlmodel {
 		int resultJoinBoltCount = 0;
 		int lowestCPUAndMemory = Integer.MAX_VALUE;
 		double maxThroughput = 0;
-		int[] maxThroughputParm = new int[]{28,10,16,4};
+		int[] maxThroughputParm = new int[]{32,10,16,8};
 		Instances tempThroughputData = null;
 		
+		if( onBoltRate > 270000) {
+			return maxThroughputParm;
+		}
+
 		try {
 			// train the thorughput model according to onBoltRate
 			clusterThroughputData.setClassIndex(3);
@@ -376,6 +380,8 @@ public class Mlmodel {
 		} catch (Exception e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
+			System.out.println("errorRate:" + onBoltRate);
+			return null;
 		}
 		
 		try {

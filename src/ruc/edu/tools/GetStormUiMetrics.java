@@ -37,8 +37,7 @@ public class GetStormUiMetrics {
 	private Client client = null;
 
 	public static void main(String[] args) {
-		GetStormUiMetrics stormUiMetrics = new GetStormUiMetrics();
-		System.out.println( "spout Latency: " + stormUiMetrics.getSpoutLatency());
+		System.out.println( "spout Latency: " + new GetStormUiMetrics().getSpoutLatency());
 	}
 	
 	public GetStormUiMetrics() {
@@ -74,14 +73,14 @@ public class GetStormUiMetrics {
 				while (executorStatusItr.hasNext()) {
 					// get the executor
 					ExecutorSummary executor_summary = executorStatusItr.next();
-					ExecutorStats execStats = executor_summary.get_stats();
-					ExecutorSpecificStats execSpecStats = execStats
+					ExecutorStats execStats = executor_summary == null ? null :executor_summary.get_stats();
+					ExecutorSpecificStats execSpecStats = execStats == null ? null:execStats
 							.get_specific();
-					String componentId = executor_summary.get_component_id();
+					String componentId = executor_summary == null ? null:executor_summary.get_component_id();
 					// if the executor is a spout
-					if (execSpecStats.is_set_spout()) {
+					if (execSpecStats != null && execSpecStats.is_set_spout()) {
 						SpoutStats spoutStats = execSpecStats.get_spout();
-						if( spoutStats.get_complete_ms_avg_size() > 0) {
+						if( spoutStats != null && spoutStats.get_complete_ms_avg_size() > 0) {
 							double latency = 
 									getStatValueFromMap(spoutStats.get_complete_ms_avg(), "600");
 							spoutCompleteLatencies.add(latency);
@@ -96,7 +95,7 @@ public class GetStormUiMetrics {
 				sumOfLatencies += temp;
 			}
 			
-			return sumOfLatencies / spoutCompleteLatencies.size();
+			return spoutCompleteLatencies.size() == 0 ? 0:sumOfLatencies / spoutCompleteLatencies.size();
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -110,9 +109,9 @@ public class GetStormUiMetrics {
 	public static Double getStatValueFromMap(Map<String, Map<String, Double>> map,
 			String statName) {
 		//System.out.println("hehe:" + map.toString());
-		Double statValue = null;
+		Double statValue = 0.0;
 		Map<String, Double> intermediateMap = map.get(statName);
-		statValue = intermediateMap.get("default");
+		if (intermediateMap.size() > 0 && intermediateMap != null) statValue = intermediateMap.get("default");
 		return statValue;
 	}
 

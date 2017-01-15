@@ -4,6 +4,9 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -13,7 +16,10 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.jfree.data.time.Millisecond;
+
 import ruc.edu.core.AdaptiveStorm;
+import ruc.edu.core.AllTPCHProducer;
 
 public class SettingPanel extends JPanel implements ActionListener{
 
@@ -27,6 +33,7 @@ public class SettingPanel extends JPanel implements ActionListener{
 	private JTextField maxLatency = null;
 	private JComboBox<String> dataRatecomboBox = null;
 	private JTextField logPath = null;
+	private AllTPCHProducer producer = null;
 	
 	public SettingPanel( AdaptiveStorm adaptiveStorm) {
 		
@@ -60,7 +67,7 @@ public class SettingPanel extends JPanel implements ActionListener{
 		JLabel label_1 = new JLabel("Threshold of Max Different Rates:");
 		add(label_1);
 		
-		maxDRate = new JTextField("20000");
+		maxDRate = new JTextField("30000");
 		add(maxDRate);
 		maxDRate.setColumns(10);
 		
@@ -76,7 +83,7 @@ public class SettingPanel extends JPanel implements ActionListener{
 		JLabel lblLatencyDeadline = new JLabel("Latency Deadline:");
 		add(lblLatencyDeadline);
 		
-		maxLatency = new JTextField("2000");
+		maxLatency = new JTextField("1000");
 		add(maxLatency);
 		maxLatency.setColumns(10);
 		
@@ -86,6 +93,7 @@ public class SettingPanel extends JPanel implements ActionListener{
 
 		dataRatecomboBox = new JComboBox<String>(new String[]{"1", "2", "3", "4"
 				, "5", "6","7", "8", "9","10"});
+		dataRatecomboBox.setSelectedIndex(9);
 		add(dataRatecomboBox);
 		
 		// log路径
@@ -138,28 +146,23 @@ public class SettingPanel extends JPanel implements ActionListener{
 		    }
 		}
 		else if( e.getActionCommand().equals("Start_Producer")) {
-			// 到wamdm12上启动producer
-			Process process;
-			try {
-				process = Runtime
-						.getRuntime()
-						.exec(new String[] {
-								"bash",
-								"-c",
-								"ssh wamdm12 \"source /etc/profile ; cd ~/wengzujian/ ;"
-										+ "java -jar tpchproducer.jar && exit\" "});
-				process.waitFor();
-			} catch (IOException er) {
-				// TODO Auto-generated catch block
-				er.printStackTrace();
-			} catch (InterruptedException er) {
-				// TODO Auto-generated catch block
-				er.printStackTrace();
-			}
+			// 启动数据发送线程
+			producer = new AllTPCHProducer( adaptiveStorm);
+			producer.startProducing();
+			// 开启自动配置定时器任务
+			adaptiveStorm.startAdaStorm();
+
 		}
 		else if( e.getActionCommand().equals("Apply_Change")) {
 			// 应用修改的配置
-			
+			int newLevel = Integer.valueOf((String) dataRatecomboBox.getSelectedItem());
+			adaptiveStorm.logs[1].append("change spout to level " + newLevel + "\n");
+			adaptiveStorm.logs[3].append("change spout to level " + newLevel + "\n");
+			producer.changeRateLevel(newLevel);
+		}
+		else if( e.getActionCommand().equals("Write_Logs")) {
+			adaptiveStorm.plots[2].adaStormSeries.add(new Millisecond(), new Random().nextInt(50));
+
 		}
 	}
 

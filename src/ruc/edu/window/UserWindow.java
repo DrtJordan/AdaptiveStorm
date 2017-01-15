@@ -69,7 +69,6 @@ import ruc.edu.components.MJFreeChartPanel;
 import ruc.edu.components.SettingPanel;
 import ruc.edu.core.AdaptiveStorm;
 import ruc.edu.core.Mlmodel;
-import ruc.edu.tools.AllTPCHProducer;
 import ruc.edu.tools.Tools;
 
 public class UserWindow  extends ApplicationFrame implements ActionListener {
@@ -124,10 +123,10 @@ public class UserWindow  extends ApplicationFrame implements ActionListener {
 		panel_latencyThrou.add(panel_setting_2, BorderLayout.NORTH);
 		
 		// 下面添加4个plots
-		cpuChart = new MJFreeChartPanel("CPU", "Utilization", "Tuples/s (x10K)");
-		memoryChart = new MJFreeChartPanel("Memory", "GB", "Tuples/s (x10K)");
-		throughputChart = new MJFreeChartPanel("Throughput", "Tuples/s (x10K)", null);
-		latencyChart = new MJFreeChartPanel("Latency", "ms", "Tuples/s (x10K)");
+		cpuChart = new MJFreeChartPanel("CPU", "Utilization", "Tuples/s (x10K)", "CPU");
+		memoryChart = new MJFreeChartPanel("Memory", "GB", "Tuples/s (x10K)", "Memory");
+		throughputChart = new MJFreeChartPanel("Throughput", "Tuples/s (x10K)", null, "Throughput");
+		latencyChart = new MJFreeChartPanel("Latency", "ms", "Tuples/s (x10K)", "Latency");
 		// 将两个图放进一个panel里 之后一起放入总panel里
 		JPanel cpuMemCharts = new JPanel();
 		cpuMemCharts.add(cpuChart.getChartPanel());
@@ -219,7 +218,8 @@ public class UserWindow  extends ApplicationFrame implements ActionListener {
 		
 		// ********************界面部分结束*********************
 		// 向adaptiveStorm里传入log控件
-		adaptiveStorm.setLogPanels(new JTextArea[]{ta_1_storm, ta_1_kafka, ta_2_storm, ta_2_kafka});
+		adaptiveStorm.setLogPanels(new JTextArea[]{ta_1_storm, ta_1_kafka, ta_2_storm, ta_2_kafka}, 
+				new MJFreeChartPanel[]{ cpuChart, memoryChart, throughputChart, latencyChart});
 		
 	}
 

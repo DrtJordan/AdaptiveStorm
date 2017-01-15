@@ -46,8 +46,8 @@ import java.awt.Canvas;
 import javax.swing.JSpinner;
 import javax.swing.JComboBox;
 
+import ruc.edu.core.AllTPCHProducer;
 import ruc.edu.core.Mlmodel;
-import ruc.edu.tools.AllTPCHProducer;
 import ruc.edu.tools.Tools;
 
 public class TestWindow {
@@ -230,8 +230,8 @@ public class TestWindow {
 		btnNewButton_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				// start producing data
-				AllTPCHProducer producer = new AllTPCHProducer();
-				producer.startProducing();
+				//AllTPCHProducer producer = new AllTPCHProducer();
+				//producer.startProducing();
 			}
 		});
 		panel_setting.add(btnNewButton_1);

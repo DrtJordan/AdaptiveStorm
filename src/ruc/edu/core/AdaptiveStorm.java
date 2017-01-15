@@ -21,6 +21,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.swing.JTextArea;
 
+import org.jfree.data.time.TimeSeries;
+
+import ruc.edu.components.ChooseOPTimerTask;
+import ruc.edu.components.DrawTimerTask;
+import ruc.edu.components.MJFreeChartPanel;
 import ruc.edu.tools.ComponentMetric;
 import ruc.edu.tools.GetStormUiMetrics;
 import kafka.consumer.ConsumerConfig;
@@ -30,35 +35,53 @@ import kafka.javaapi.consumer.ConsumerConnector;
 
 public class AdaptiveStorm {
 
+	public AdaptiveStorm adaptiveStorm = null;
 	String groupId = UUID.randomUUID().toString();
 	String zookeeper = "192.168.0.19:2181,192.168.0.21:2181,192.168.0.22:2181,192.168.0.23:2181"
 			+ ",192.168.0.24:2181";
 	String drawTopic = "drawtopics";				// 接收画图的kafka topic
-	String tpchTemptopic = "tpchtemptopics";		// 接收是否改变配置的kafka topic
+	//String tpchTemptopic = "tpchtemptopics";		// 接收是否改变配置的kafka topic
 	String oldTopologyName = "tpchquery";
 	
+	// 可在界面中动态改变的参数
 	String regressionAlg = "J48";
 	String classifiAlg = "Multilayer Perceptron";
-	int collecInterval = 3;
-	int maxDRate = 30000;
-	int checkpoints = 2;
-	int maxLatency = 2000;
-	int dataRateLevel = 1;
+	public int collecInterval = 3;
+	public int maxDRate = 30000;
+	public int checkpoints = 2;
+	public int maxLatency = 2000;
+	public int dataRateLevel = 1;
 
 	private ConsumerConnector consumer;
 	private ExecutorService executor1;
 	private ExecutorService executor2;
-	private Mlmodel mlModel = null;
+	public Mlmodel mlModel = null;
+	// 用户获得实时延时数据
 	private GetStormUiMetrics stormUiMetrics = null;
 	//private CollectThroughputSamples collectSamples = null;
-	private JTextArea[] logs;
-	private String jarFileName;
+	public JTextArea[] logs;
+	public String jarFileName;
 	int[] oldParameters = new int[4];
+	// 4条曲线
+	public MJFreeChartPanel[] plots = new MJFreeChartPanel[4];
+	public ComponentMetric spoutMetric = null;
+	public ComponentMetric onBoltMetric = null;
+	public ComponentMetric joinBoltMetric = null;
+	public ComponentMetric kafkaMetric = null;
+	public Timer adaStorm = null;
 	
+	public AdaptiveStorm() {
+		this.adaptiveStorm = this;
+		spoutMetric = new ComponentMetric();
+		onBoltMetric = new ComponentMetric();
+		joinBoltMetric = new ComponentMetric();
+		kafkaMetric = new ComponentMetric();
+		adaStorm = new Timer();
+	}
 	
-	
-	public void setLogPanels(JTextArea[] logs ) {
+	public void setLogPanels(JTextArea[] logs, MJFreeChartPanel[] plots ) {
 		this.logs = logs;
+		this.plots = plots;
 	}
 	/**
 	 * 开始运行Storm
@@ -169,26 +192,19 @@ public class AdaptiveStorm {
 	public class ConsumerTest implements Runnable {
 		private KafkaStream m_stream;
 		//private int m_threadNumber;
-		private SimpleDateFormat df = null;
-		private Date thisTime = null;
+		//private SimpleDateFormat df = null;
+		//private Date thisTime = null;
 		private double oldSpoutRate = 0;
-		private double kafkaProducerThroughput = 0;
 		private Map<String, Long> otherMetrics = null;
-		
-		ComponentMetric spoutMetric = null;
-		ComponentMetric onBoltMetric = null;
-		ComponentMetric joinBoltMetric = null;
 		boolean isError = false;
-		Timer timer = new Timer();
+		Timer drawTimer = null;
 
 		public ConsumerTest(KafkaStream a_stream, int a_threadNumber) {
 			//m_threadNumber = a_threadNumber;
 			m_stream = a_stream;
-			df = new SimpleDateFormat("dd HH:mm");
-			spoutMetric = new ComponentMetric();
-			onBoltMetric = new ComponentMetric();
-			joinBoltMetric = new ComponentMetric();
+			//df = new SimpleDateFormat("dd HH:mm");
 			otherMetrics = new HashMap<String,Long>();
+			drawTimer = new Timer();				// 画图线程
 		}
 
 		public void run() {
@@ -196,13 +212,16 @@ public class AdaptiveStorm {
 			// wait until ml model finish
 			try {
 				Mlmodel.mlFinished.acquire();
-				
 			} catch (InterruptedException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 			
 			try {
+				// 画图定时线程
+				drawTimer.schedule(new DrawTimerTask( new ComponentMetric[]{ spoutMetric,
+						onBoltMetric, joinBoltMetric, kafkaMetric}, plots), 6000, 6000);
+				
 				ConsumerIterator<byte[], byte[]> it = m_stream.iterator();
 				while (it.hasNext()) {
 					
@@ -216,224 +235,36 @@ public class AdaptiveStorm {
 					//System.out.println(data);
 					
 					switch( datas[0]) {
-					case "kafkaProducer":
-						kafkaProducerThroughput = Integer.valueOf(datas[1]);
-						System.out.println("kafka throughput: "
-								+ kafkaProducerThroughput);
-						logs[1].append("kafka throughput: " + kafkaProducerThroughput + "\n");
-						logs[3].append("kafka throughput: " + kafkaProducerThroughput + "\n");
-						break;
-					case "spoutRate":
+					/*case "kafkaProducer":
+						int kafkaThroughput = Integer.valueOf(datas[1]);
+						//System.out.println("kafka throughput: "
+						//		+ kafkaThroughput);
+						kafkaMetric.throughputSum.addAndGet(kafkaThroughput);
+						kafkaMetric.metricNumber.incrementAndGet();
+						logs[1].append("kafka throughput: " + kafkaThroughput + "\n");
+						logs[3].append("kafka throughput: " + kafkaThroughput + "\n");
+						break;*/
+					case "spoutDraw":
 						spoutMetric.taskCount = Integer.valueOf(datas[1]);
-						spoutMetric.cpuMetricList.add((int) (Double.valueOf( datas[5]) * 100));
-						spoutMetric.memoryMetricList.add((int) (Long.valueOf(datas[6]) / 1000000));
-						spoutMetric.metricList.add(Integer.valueOf(datas[3]));
-						if (spoutMetric.metricList.size() > spoutMetric.taskCount) {
-							isError = true;
-							timer.schedule(new TimerTask(){
-
-								@Override
-								public void run() {
-									// TODO Auto-generated method stub
-									isError = false;
-								}
-								
-							}, 10000);
-							System.out.println("spout error happen! " + data);
-						}
-						if (spoutMetric.metricList.size() == spoutMetric.taskCount) {
-							// need to calculate sum\
-							spoutMetric.metricSum = 0;
-							System.out.println(" spoutRateNumber :" +
-										spoutMetric.metricList.size() / 3);
-							for (Integer temp : spoutMetric.metricList) {
-								
-								spoutMetric.metricSum += temp;
-							}
-							spoutMetric.getAvgCpuMetric();
-							spoutMetric.getAvgMemoryMetric();
-							/*System.out.println(" spoutRateSum :" +
-									spoutMetric.metricSum);*/
-						}
-						break;
-					case "onBolt":
-						if( otherMetrics.isEmpty()) {
-							// need to extract other metrics
-							otherMetrics.put("supervisors", Long.valueOf( datas[6] ));
-							otherMetrics.put("cpucores", Long.valueOf( datas[7] ));
-							otherMetrics.put("memory", Long.valueOf( datas[8] ));
-							otherMetrics.put("workers", Long.valueOf( datas[9] ));
-							otherMetrics.put("onBoltNumber", Long.valueOf( datas[10] ));
-							otherMetrics.put("joinBoltNumber", Long.valueOf( datas[11] ));
-							otherMetrics.put("kafkaBrokers", Long.valueOf( datas[12] ));
-							otherMetrics.put("kafkaPartitions", Long.valueOf( datas[13] ));
-							otherMetrics.put("onBolt", Long.valueOf( datas[14] ));
-							otherMetrics.put("joinBolt", Long.valueOf( datas[15] ));
-							otherMetrics.put("spouts", Long.valueOf( datas[16] ));
-							otherMetrics.put("windowLength", Long.valueOf( datas[17] ));
-							otherMetrics.put("emitFrenquency", Long.valueOf( datas[18] ));
-							
-						}
-						
-						onBoltMetric.taskCount = Integer.valueOf(datas[1]);
-						onBoltMetric.cpuMetricList.add((int) (Double.valueOf( datas[4]) * 100));
-						onBoltMetric.memoryMetricList.add((int) (Long.valueOf(datas[5]) / 1000000));
-						onBoltMetric.metricList.add(Integer.valueOf(datas[3]));
-						if (onBoltMetric.metricList.size() > onBoltMetric.taskCount) {
-							isError = true;
-							timer.schedule(new TimerTask(){
-
-								@Override
-								public void run() {
-									// TODO Auto-generated method stub
-									isError = false;
-								}
-								
-							}, 10000);
-							System.out.println("onBolt error happen! " + data);
-						}
-						if (onBoltMetric.metricList.size() == onBoltMetric.taskCount) {
-							// need to calculate sum
-							onBoltMetric.metricSum = 0;
-							System.out.println(" onBoltNumber :" +
-										onBoltMetric.metricList.size() / 4);
-							for (Integer temp : onBoltMetric.metricList) {
-								
-								onBoltMetric.metricSum += temp;
-							}
-							onBoltMetric.getAvgCpuMetric();
-							onBoltMetric.getAvgMemoryMetric();
-							 /*System.out.println(" onBoltSum :" +
-									 onBoltMetric.metricSum);*/
-						}
-						break;
-					case "joinBolt":
-							//if (joinBoltMetric.taskCount == 0) {
-							joinBoltMetric.taskCount = Integer.valueOf(datas[1]);
-							// System.out.println(" joinBoltCount :" +
-							// joinBoltTaskCount);
-						//}
-						joinBoltMetric.cpuMetricList.add((int) (Double.valueOf( datas[4]) * 100));
-						joinBoltMetric.memoryMetricList.add((int) (Long.valueOf(datas[5]) / 1000000));
-						joinBoltMetric.metricList.add(Integer.valueOf(datas[3]));
-						if (joinBoltMetric.metricList.size() > joinBoltMetric.taskCount) {
-							isError = true;
-							timer.schedule(new TimerTask(){
-	
-								@Override
-								public void run() {
-									// TODO Auto-generated method stub
-									isError = false;
-								}
-								
-							}, 10000);
-							System.out.println("joinBolt error happen! " + data);
-						}
-						if (joinBoltMetric.metricList.size() == joinBoltMetric.taskCount) {
-							// need to calculate sum
-							joinBoltMetric.metricSum = 0;
-							System.out.println(" joinBoltNumber :" +
-									joinBoltMetric.metricList.size() / 2);
-							for (Integer temp : joinBoltMetric.metricList) {
-								
-								joinBoltMetric.metricSum += temp;
-							}
-							joinBoltMetric.getAvgCpuMetric();
-							joinBoltMetric.getAvgMemoryMetric();
-							 //System.out.println(" joinBoltSum :" + joinBoltMetric.metricSum);
-						}
+						spoutMetric.cpuUsage.addAndGet((int) (Double.valueOf( datas[3]) * 100));
+						spoutMetric.memoryUsage.addAndGet(Long.valueOf(datas[4]).intValue());
+						spoutMetric.throughputSum.addAndGet(Integer.valueOf(datas[2]));
+						spoutMetric.metricNumber.incrementAndGet();
 						break;
 					case "onBoltDraw":
-						//System.out.println(data);
+						onBoltMetric.taskCount = Integer.valueOf(datas[1]);
+						onBoltMetric.cpuUsage.addAndGet((int) (Double.valueOf( datas[3]) * 100));
+						onBoltMetric.memoryUsage.addAndGet(Long.valueOf(datas[4]).intValue());
+						onBoltMetric.throughputSum.addAndGet(Integer.valueOf(datas[2]));
+						onBoltMetric.metricNumber.incrementAndGet();
 						break;
 					case "joinBoltDraw":
-						//System.out.println(data);
+						joinBoltMetric.taskCount = Integer.valueOf(datas[1]);
+						joinBoltMetric.cpuUsage.addAndGet((int) (Double.valueOf( datas[3]) * 100));
+						joinBoltMetric.memoryUsage.addAndGet(Long.valueOf(datas[4]).intValue());
+						joinBoltMetric.throughputSum.addAndGet(Integer.valueOf(datas[2]));
+						joinBoltMetric.metricNumber.incrementAndGet();
 						break;
-					case "spoutDraw":
-						System.out.println(data);
-						break;
-					}
-
-					// 有需要时改变Storm参数配置
-					if (spoutMetric.metricSum != 0 && onBoltMetric.metricSum != 0
-							&& joinBoltMetric.metricSum != 0) {
-						// need to update model\
-						stormUiMetrics = new GetStormUiMetrics();
-						
-						long cpuUsage = (long) ((spoutMetric.cpuUsage + 
-								onBoltMetric.cpuUsage + joinBoltMetric.cpuUsage) / 3);
-						long memoryUsage = (long) (( spoutMetric.memoryUsage +
-								onBoltMetric.memoryUsage + joinBoltMetric.memoryUsage ) / 3);
-						otherMetrics.put("spoutRate", (long) spoutMetric.metricSum);
-						otherMetrics.put("onBoltRate", (long) onBoltMetric.metricSum);
-						otherMetrics.put("joinBoltRate", (long) joinBoltMetric.metricSum);
-						otherMetrics.put("cpuUsed", cpuUsage);
-						otherMetrics.put("memoryUsage", memoryUsage);
-						otherMetrics.put("latency", Math.round(stormUiMetrics.getSpoutLatency()) );
-						
-						// update the ml model according to new sample
-						mlModel.updateModel(otherMetrics);
-						//CollectThroughputSamples.sampleFinished.release();
-						
-						mlModel.updateResult(datas[2], otherMetrics);
-						String sampleInfo = "time: " + datas[2] + 
-								"\n throughput : " + spoutMetric.metricSum
-								+ "\n latency: " + otherMetrics.get("latency") + "\n\n";
-						System.out.println(sampleInfo);
-						logs[0].append(sampleInfo);
-						logs[2].append(sampleInfo);
-						
-						// choose better parameters
-						if (oldSpoutRate == 0 || Math.abs(oldSpoutRate
-								- spoutMetric.metricSum) / oldSpoutRate > 0.3) {
-							// need change storm parameters
-							double multiNumber = kafkaProducerThroughput / spoutMetric.metricSum ;
-							int[] result = mlModel
-									.getOptimalParameters(new int[] {
-											(int) (spoutMetric.metricSum * multiNumber), 
-											(int) (onBoltMetric.metricSum * multiNumber),
-											(int) (joinBoltMetric.metricSum * multiNumber)});
-							
-							String changeInfo = "optimal parameters changed because data rate changed:"
-									+ result[0] + " " + result[1] + " " + result[2] + " " + result[3] + "\n\n";
-							System.out.println(changeInfo);
-							logs[0].append(changeInfo);
-							logs[2].append(changeInfo);
-							oldSpoutRate = spoutMetric.metricSum;
-							
-							// change storm parameters according to results
-							changeStormParameters(result, jarFileName);
-
-						}
-						else if( Math.abs(kafkaProducerThroughput
-								- spoutMetric.metricSum) > maxDRate) {
-							// change parameter according to producer
-							
-							double multiNumber = kafkaProducerThroughput / spoutMetric.metricSum ;
-							int[] result = mlModel
-									.getOptimalParameters(new int[] {
-											(int) (spoutMetric.metricSum * multiNumber),
-											(int) (onBoltMetric.metricSum * multiNumber),
-											(int) (joinBoltMetric.metricSum * multiNumber) });
-							
-							String changeInfo = "optimal parameters changed because producer rate too high:"
-									+ result[0] + " " + result[1] + " " + result[2] + " " + result[3] + "\n\n";
-							System.out.println(changeInfo);
-							logs[0].append(changeInfo);
-							logs[2].append(changeInfo);
-							oldSpoutRate = spoutMetric.metricSum;
-							
-							// change storm parameters according to results
-							changeStormParameters(result, jarFileName);
-						}
-						
-						thisTime = null;
-						// reset all metric
-						spoutMetric.reSet();
-						onBoltMetric.reSet();
-						joinBoltMetric.reSet();
-						otherMetrics.clear();
-						
 					}
 
 				}
@@ -492,6 +323,18 @@ public class AdaptiveStorm {
 		//for (String templine : processList) {
 		//	System.out.println(templine);
 		//}
+	}
+	
+	public void startAdaStorm() {
+		// 寻找最优参数定时线程
+		// 先清空之前的数据  因为可能非常小
+		spoutMetric.reSetMinutes();
+		onBoltMetric.reSetMinutes();
+		joinBoltMetric.reSetMinutes();
+		kafkaMetric.reSetMinutes();
+		adaStorm.schedule(new ChooseOPTimerTask( new ComponentMetric[]{ spoutMetric,
+				onBoltMetric, joinBoltMetric, kafkaMetric}, adaptiveStorm), 18000,
+				18000);
 	}
 
 }
