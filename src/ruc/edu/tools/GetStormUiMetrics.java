@@ -37,11 +37,11 @@ public class GetStormUiMetrics {
 	private Client client = null;
 
 	public static void main(String[] args) {
-		System.out.println( "spout Latency: " + new GetStormUiMetrics().getSpoutLatency());
+		System.out.println( "spout Latency: " + new GetStormUiMetrics("192.168.0.17").getSpoutLatency());
 	}
 	
-	public GetStormUiMetrics() {
-		TSocket socket = new TSocket("192.168.0.17", 6627);
+	public GetStormUiMetrics( String nimbusAddr) {
+		TSocket socket = new TSocket( nimbusAddr, 6627);
 		TFramedTransport transport = new TFramedTransport(socket);
 		TBinaryProtocol protocol = new TBinaryProtocol(transport);
 		client = new Client(protocol);

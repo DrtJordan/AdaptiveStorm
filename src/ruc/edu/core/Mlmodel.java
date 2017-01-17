@@ -324,7 +324,7 @@ public class Mlmodel {
 				// false))
 
 				System.out.println("finish model training");
-				mlFinished.release();
+				mlFinished.release(2);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -334,7 +334,7 @@ public class Mlmodel {
 
 	}
 
-	// get optimal parameters for storm
+	// get optimal parameters for storm 返回的数中除了配置数据外 还带有4个预测数据以待验证
 	public int[] getOptimalParameters(int[] dataRates) {
 		int spoutRate = dataRates[0];
 		int onBoltRate = dataRates[1];
@@ -346,9 +346,13 @@ public class Mlmodel {
 		int resultSpoutCount = 0;
 		int resultOnBoltCount = 0;
 		int resultJoinBoltCount = 0;
-		int lowestCPUAndMemory = Integer.MAX_VALUE;
+		int predictedCPU = 0;
+		int predictedMem = 0;
+		int throughputConfident = 0;
+		int latencyConfident = 0;
+		int lowestCPUAndMemory = 200;			// 200% CPU+memory利用率
 		double maxThroughput = 0;
-		int[] maxThroughputParm = new int[]{32,10,16,8};
+		int[] maxThroughputParm = new int[]{32,10,16,8,78, 37802, 97, 96};
 		Instances tempThroughputData = null;
 		
 		if( onBoltRate > 270000) {
@@ -460,7 +464,7 @@ public class Mlmodel {
 					// onBolt
 					for (int k = 4; k <= 32; k += 1) {
 						// joinBolt
-						for (int z = 1; z <= 32; z += 1) {
+						for (int z = 4; z <= 32; z += 1) {
 							// spout
 							double[] latencyValues = latencyTempValues.clone();
 							latencyValues[0] = i;
@@ -521,30 +525,39 @@ public class Mlmodel {
 									double memoryResult = memoryModel
 											.classifyInstance(memoryInstances
 													.firstInstance());
-									/*fw.write("cpu: " + cpuResult + " memory:"
-											+ memoryResult + " throughput:"
-											+ throughputResult[1] + " workers: " + i
-											+ " onBolt: " + j + " joinBolt: " + k
-											+ " spout: " + z + " latency:" + latencyResult[0] + "\n");*/
+									
+									/*if( throughputResult[1] > 0.90) {
+										fw.write("cpu: " + cpuResult + " memory:"
+												+ memoryResult + " throughput:"
+												+ throughputResult[1] + " workers: " + i
+												+ " onBolt: " + j + " joinBolt: " + k
+												+ " spout: " + z + " latency:" + latencyResult[0] + "\n");
+									}*/
+									
 									
 									if( throughputResult[1] > 0.90 && cpuResult 
-											+ (memoryResult / 1000 / 160) < lowestCPUAndMemory) {
+											+ (memoryResult / 1600) < lowestCPUAndMemory) {
 										// find better parameters
+										throughputConfident = (int) (throughputResult[1] * 100);
+										latencyConfident = (int) (latencyResult[0] * 100);
+										predictedCPU = (int) cpuResult;
+										predictedMem = (int) memoryResult;
+												
 										lowestCPUAndMemory = 
-												(int) (cpuResult + (memoryResult / 1000 / 160));
+												(int) (cpuResult + (memoryResult/ 1600));
 										resultWorkerCount = i;
 										resultOnBoltCount = j;
 										resultJoinBoltCount = k;
 										resultSpoutCount = z;
 
-										fw.write("cpu: " + cpuResult
+										/*fw.write("cpu: " + cpuResult
 												+ " memory:" + memoryResult
 												+ " throughput:"
-												+ throughputResult
+												+ throughputResult[1]
 												+ " workers: " + i
 												+ " onBolt: " + j
 												+ " joinBolt: " + k
-												+ " spout: " + z + "\n");
+												+ " spout: " + z + " lowestCPUAndMemory" + lowestCPUAndMemory + "\n");*/
 									}
 									
 								}
@@ -568,9 +581,12 @@ public class Mlmodel {
 			// return maximum throughput parameters
 			return maxThroughputParm;
 		}
-
+		if(resultOnBoltCount == 4) resultOnBoltCount += new Random().nextInt(3) ;
+		if(resultSpoutCount == 4) resultSpoutCount += new Random().nextInt(3) ;
+		
 		return new int[] { resultWorkerCount, resultOnBoltCount,
-				resultJoinBoltCount, resultSpoutCount };
+				resultJoinBoltCount, resultSpoutCount, predictedCPU, predictedMem,
+				throughputConfident, latencyConfident };
 
 	}
 

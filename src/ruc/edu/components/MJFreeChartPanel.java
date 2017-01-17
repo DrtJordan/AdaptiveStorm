@@ -55,6 +55,7 @@ public class MJFreeChartPanel {
 	    //plot.setDataset(3, dateRateDataset);
 	    // 第一个y轴对象
 	    final ValueAxis axis = plot.getDomainAxis();
+	    plot.getRangeAxis().setAutoRange(false);
 	    axis.setAutoRange(true);		// 不滑动
 	    // 设置第二个y轴以及对应的数据库
           
@@ -72,7 +73,7 @@ public class MJFreeChartPanel {
 	    }
 	    else {
 	    	// throughput不需要第二个y轴
-	    	plot.getRangeAxis().setRange(0, 40);
+	    	plot.getRangeAxis().setRange(0, 30);
 	    	plot.mapDatasetToRangeAxis(1, 0);
 	    }
 	    
@@ -80,7 +81,7 @@ public class MJFreeChartPanel {
 	    	plot.getRangeAxis().setRange(0, 100);
 	    }
 	    else if( type.equals("Memory")) {
-	    	plot.getRangeAxis().setRange(0, 60);
+	    	plot.getRangeAxis().setRange(0, 65);
 	    }
 	    else if( type.equals("Latency")) {
 	    	plot.getRangeAxis().setRange(0, 2000);

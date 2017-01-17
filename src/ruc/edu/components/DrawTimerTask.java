@@ -5,6 +5,7 @@ import java.util.TimerTask;
 import org.jfree.data.time.Millisecond;
 import org.jfree.data.time.RegularTimePeriod;
 
+import ruc.edu.core.AdaptiveStorm;
 import ruc.edu.tools.ComponentMetric;
 import ruc.edu.tools.GetStormUiMetrics;
 
@@ -20,11 +21,11 @@ public class DrawTimerTask extends TimerTask {
 	ComponentMetric joinBoltMetric = null;
 	ComponentMetric kafkaMetric = null;
 	MJFreeChartPanel[] plots;
-	boolean isThroughput = false;
-	boolean isLatency = false;
+	AdaptiveStorm adaptiveStorm = null;
 	
-	public DrawTimerTask( ComponentMetric[] components, MJFreeChartPanel[] plots) {
+	public DrawTimerTask( ComponentMetric[] components, MJFreeChartPanel[] plots, AdaptiveStorm adaptiveStorm) {
 		this.plots = plots;
+		this.adaptiveStorm = adaptiveStorm;
 		spoutMetric = components[0];
 		onBoltMetric = components[1];
 		joinBoltMetric = components[2];
@@ -60,8 +61,9 @@ public class DrawTimerTask extends TimerTask {
 			plots[2].adaStormSeries.add(time , throughput);
 			
 			// 添加latency数据
-			plots[3].userDefinedSeries.add(time , 1000);
-			plots[3].adaStormSeries.add(time ,  Math.round(new GetStormUiMetrics().getSpoutLatency()));
+			plots[3].userDefinedSeries.add(time , adaptiveStorm.maxLatency);
+			plots[3].adaStormSeries.add(time ,  Math.round(
+					new GetStormUiMetrics("192.168.0.17").getSpoutLatency()));
 		}
 		// 清空5秒钟的数据
 		spoutMetric.reSetFiveSeconds(true);

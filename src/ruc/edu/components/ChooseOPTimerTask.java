@@ -2,6 +2,7 @@ package ruc.edu.components;
 
 import java.util.TimerTask;
 
+import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
 
 import org.jfree.data.time.Millisecond;
@@ -47,6 +48,7 @@ public class ChooseOPTimerTask extends TimerTask {
 		System.out.println("\n spoutThroughput:" + spoutThroughput + 
 				" onThroughput:" + onThroughput + " joinThroughput: " + 
 				joinThroughput + " kafkaThroughput:" + kafka);
+		String changeInfo = null;
 		// need to update model\
 		/*stormUiMetrics = new GetStormUiMetrics();
 		
@@ -83,10 +85,10 @@ public class ChooseOPTimerTask extends TimerTask {
 				return ;
 			}
 			// 如果这次预测的kafka值跟上次一样 则不需要再预测了  可能只是storm没有预热而已
-			//if(Math.abs(lastKafka - kafka) < 20000) {
+			if(Math.abs(lastKafka - kafka) < 20000) {
 				
-			//	return ;
-			//}
+				return ;
+			}
 			lastKafka = kafka;
 			double multiNumber = (double )kafka / (double)spoutThroughput ;
 			System.out.println("predict spoutThroughput: " + (int) (spoutThroughput * multiNumber) + " "
@@ -97,11 +99,15 @@ public class ChooseOPTimerTask extends TimerTask {
 							(int) (onThroughput * multiNumber),
 							(int) (joinThroughput * multiNumber) });
 			if( result == null) return ;	// weka选择的时候出错了 返回空指 
-			result[3] = result[3] < 4? 4: result[3];			// 设置spout最少为4
-			String changeInfo = "optimal parameters changed because producer rate too high:\n"
-					+ "worker: " + result[0] + "\n" + "spouts: " + result[3] + "\n" + "onBolt:"
-					+ result[1] + "\n" + "joinBolt: " + result[2] + "\n" + "**********************"
-							+ "****************************************\n";
+			// show message dialog
+			changeInfo = "Optimal configuration has to change because producer rate is too high:\n"
+					+ "worker: " + result[0] + "  spouts: " + result[3] + "  onBolt:"
+					+ result[1] + "  joinBolt: " + result[2] + "\n" + "Predicted CPU usage:" + result[4]
+					+ "  memory Usage:" + result[5] + "  throughput confidence:" + result[6] +
+					"  latency confidence:" + result[7];
+			JOptionPane.showMessageDialog(adaptiveStorm.parentFrame, changeInfo);
+			changeInfo = changeInfo + "\n**********************"
+								+ "**************************************************\n";
 			System.out.println(changeInfo);
 			adaptiveStorm.logs[0].append(changeInfo);
 			adaptiveStorm.logs[2].append(changeInfo);
@@ -118,10 +124,10 @@ public class ChooseOPTimerTask extends TimerTask {
 				return ;
 			}
 			// 如果这次预测的kafka值跟上次一样 则不需要再预测了  可能只是storm没有预热而已
-			//if(Math.abs(lastKafka - kafka) < 20000) {
+			if(Math.abs(lastKafka - kafka) < 20000) {
 				
-			//	return ;
-			//}
+				return ;
+			}
 			lastKafka = kafka;
 			double multiNumber = (double )kafka / (double)spoutThroughput ;
 			System.out.println("predict spoutThroughput: " + (int) (spoutThroughput * multiNumber) + " "
@@ -132,11 +138,15 @@ public class ChooseOPTimerTask extends TimerTask {
 							(int) (onThroughput * multiNumber),
 							(int) (joinThroughput * multiNumber)});
 			if( result == null) return ;	// weka选择的时候出错了 返回空指 
-			result[3] = result[3] < 4? 4: result[3];			// 设置spout最少为4
-			String changeInfo = "optimal parameters changed because producer rate has changed:\n"
-					+ "worker: " + result[0] + "\n" + "spouts: " + result[3] + "\n" + "onBolt:"
-					+ result[1] + "\n" + "joinBolt: " + result[2] + "\n" + "**********************"
-							+ "****************************************\n";
+			// show message dialog
+			changeInfo = "Optimal configuration has to change because producer rate has changed:\n"
+					+ "worker: " + result[0] + "  spouts: " + result[3] + "  onBolt:"
+					+ result[1] + "  joinBolt: " + result[2] + "\n" + "Predicted CPU usage:" + result[4]
+					+ "  memory Usage:" + result[5] + "  throughput confidence:" + result[6] +
+					"  latency confidence:" + result[7];
+			JOptionPane.showMessageDialog(adaptiveStorm.parentFrame, changeInfo);
+			changeInfo = changeInfo + "\n**********************"
+					+ "**************************************************\n";
 			System.out.println(changeInfo);
 			adaptiveStorm.logs[0].append(changeInfo);
 			adaptiveStorm.logs[2].append(changeInfo);
@@ -145,11 +155,9 @@ public class ChooseOPTimerTask extends TimerTask {
 			// change storm parameters according to results
 			adaptiveStorm.changeStormParameters(result, adaptiveStorm.jarFileName);
 		}
-		
 		oldThroughput = kafka;
 		
 		resetMinutes();
-		
 	}
 	
 	/**

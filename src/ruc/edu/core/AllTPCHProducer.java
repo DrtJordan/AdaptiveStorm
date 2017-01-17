@@ -38,8 +38,8 @@ public class AllTPCHProducer {
 	static int throughtNum = 0;
 	static int sampleNumber = 1;
 	static long fixedAvgThroughout = 0;
-	static long spoutInterval = 350000;
-	static int sleepTime = 900;					// 每当controlSpeedNum 超过 spoutInterval时 睡sleepTime秒
+	static long spoutInterval = 400000;
+	static int sleepTime = 200;					// 每当controlSpeedNum 超过 spoutInterval时 睡sleepTime秒
 	static int sampleTotal = 10;
 	static String intermediateTopic = "drawtopics";
 	static int controlSpeedNum = 0;				// 用于控制发送速率
@@ -50,6 +50,7 @@ public class AllTPCHProducer {
 	static String orderTopicName = "order_test";
 	
 	public AdaptiveStorm adaptiveStorm = null;
+	public Timer calThroughput = null;
 	
 	public AllTPCHProducer(AdaptiveStorm adaptiveStorm) {
 		this.adaptiveStorm = adaptiveStorm;
@@ -57,49 +58,64 @@ public class AllTPCHProducer {
 
 	public void startProducing() {
 
-		Timer calThroughput = new Timer();
-		Timer stopCollectAndChangeRate = new Timer();
-		Timer sendThroughput = new Timer();
+		calThroughput = new Timer();
+		//Timer stopCollectAndChangeRate = new Timer();
+		//Timer sendThroughput = new Timer();
 		// Build the configuration required for connecting to Kafka
 
-		Properties props = new Properties();
+		Properties props1 = new Properties();
+		Properties props2 = new Properties();
 
 		// List of Kafka brokers. Complete list of brokers is not
 		// required as the producer will auto discover the rest of
 		// the brokers. Change this to suit your deployment.
-		props.put("metadata.broker.list",
+		props1.put("metadata.broker.list",
 				"192.168.0.19:9092,192.168.0.21:9092,192.168.0.22:9092,"
 				+ "192.168.0.23:9092,192.168.0.24:9092");
+		props2.put("metadata.broker.list",
+				"192.168.0.100:9092,192.168.0.91:9092,192.168.0.92:9092,"
+				+ "192.168.0.93:9092,192.168.0.94:9092");
 		// props.put("partitioner.class",
 		// "storm.starter.kafka.SimplePartitioner");
 		// Serializer used for sending data to kafka. Since we are sending
 		// string,
 		// we are using StringEncoder.
-		props.put("topic.metadata.refresh.interval.ms", "2000");
-		props.put("serializer.class", "kafka.serializer.StringEncoder");
-		props.put("producer.type", "async"); // async means ignore the result of
+		props1.put("topic.metadata.refresh.interval.ms", "2000");
+		props2.put("topic.metadata.refresh.interval.ms", "2000");
+		props1.put("serializer.class", "kafka.serializer.StringEncoder");
+		props2.put("serializer.class", "kafka.serializer.StringEncoder");
+		props1.put("producer.type", "async"); // async means ignore the result of
 												// sending function
+		props2.put("producer.type", "async");
 		// props.put("queue.buffering.max.messages", "200000");
 		// props.put("batch.num.messages", "10000");
 		// props.put("send.buffer.byte", "550000");
 
 		// Create the producer instance
-		ProducerConfig config = new ProducerConfig(props);
-		Producer<String, String> lineitemProducer = new Producer<String, String>(
-				config);
-		Producer<String, String> orderProducer = new Producer<String, String>(
-				config);
-		Producer<String, String> customerProducer = new Producer<String, String>(
-				config);
+		ProducerConfig config1 = new ProducerConfig(props1);
+		ProducerConfig config2 = new ProducerConfig(props2);
+		Producer<String, String> lineitemProducer1 = new Producer<String, String>(
+				config1);
+		Producer<String, String> orderProducer1 = new Producer<String, String>(
+				config1);
+		Producer<String, String> customerProducer1 = new Producer<String, String>(
+				config1);
+		
+		Producer<String, String> lineitemProducer2 = new Producer<String, String>(
+				config2);
+		Producer<String, String> orderProducer2 = new Producer<String, String>(
+				config2);
+		Producer<String, String> customerProducer2 = new Producer<String, String>(
+				config2);
 		//final Producer<String, String> kafkaThroughputProducer = new Producer<String, String>(
 		//		config);
 
 		TopicProducerThread lineitemThread = new TopicProducerThread(
-				lineitemProducer, "lineitem.tbl", lineitemTopicName);
+				lineitemProducer1,lineitemProducer2, "lineitem.tbl", lineitemTopicName);
 		TopicProducerThread ordersThread = new TopicProducerThread(
-				orderProducer, "orders.tbl", orderTopicName);
+				orderProducer1, orderProducer2, "orders.tbl", orderTopicName);
 		TopicProducerThread customersThread = new TopicProducerThread(
-				customerProducer, "customer.tbl", customerTopicName);
+				customerProducer1, customerProducer2, "customer.tbl", customerTopicName);
 
 		// 开始发送数据
 		lineitemThread.start();
@@ -130,8 +146,8 @@ public class AllTPCHProducer {
 				
 				adaptiveStorm.kafkaMetric.throughputSum.addAndGet(avgThroughout);
 				adaptiveStorm.kafkaMetric.metricNumber.incrementAndGet();
-				adaptiveStorm.logs[1].append("kafka throughput: " + avgThroughout + "\n");
-				adaptiveStorm.logs[3].append("kafka throughput: " + avgThroughout + "\n");
+				adaptiveStorm.logs[1].append("Kafka throughput (tuples/s): " + avgThroughout + "\n");
+				adaptiveStorm.logs[3].append("Kafka throughput (tuples/s): " + avgThroughout + "\n");
 				
 				RegularTimePeriod time = new Millisecond();
 				synchronized( adaptiveStorm.plots) {
@@ -192,9 +208,11 @@ public class AllTPCHProducer {
 		String topicName = null;
 		String tableName = null;
 		Producer<String, String> producer = null;
+		Producer<String, String> eProducer = null;
 
-		public TopicProducerThread(Producer<String, String> producer,
+		public TopicProducerThread(Producer<String, String> producer, Producer<String, String> eProducer,
 				String tableName, String topicName) {
+			this.eProducer = eProducer;
 			this.producer = producer;
 			this.topicName = topicName;
 			this.tableName = tableName;
@@ -233,6 +251,7 @@ public class AllTPCHProducer {
 						 * messageBufferSize = 0; }
 						 */
 						producer.send(data);
+						eProducer.send(data);
 						addThroughput();
 					}
 					br.close();
@@ -268,14 +287,35 @@ public class AllTPCHProducer {
 	 * @param level
 	 */
 	public void changeRateLevel( int level) {
+		
 		if (sampleNumber == 1) {
 			fixedAvgThroughout = 300000;
 		}
+		
+		if( level == 10) {
+			System.out.println("change to highest spout rate");
+			spoutInterval = 0;
+			sleepTime = 0;
+		}else {
+			if( level == 5) {
+				spoutInterval = level == 1? 1000 : fixedAvgThroughout / sampleTotal * sharkChange[level -1];
+				sleepTime = 600 * (1 - sharkChange[level -1] / sampleTotal);
+			}
+			else if( level <= 4) {
+				spoutInterval = level == 1? 1000 : fixedAvgThroughout / sampleTotal * sharkChange[level -1];
+				sleepTime = 1000 * (1 - sharkChange[level -1] / sampleTotal);
+			}
+			else {
+				spoutInterval = level == 1? 1000 : fixedAvgThroughout * 2 / sampleTotal * sharkChange[level -1];
+				sleepTime = 600 * (1 - sharkChange[level -1] / sampleTotal);
+			}
+		}
 		// 将2秒内的统计数据清零
 		avgThroughout = throughtNum = 0;
-		spoutInterval = level == 1? 1000 : fixedAvgThroughout / sampleTotal * sharkChange[level -1];
-		sleepTime = 1000 * (1 - sharkChange[level -1] / sampleTotal);
 		sampleNumber++;
+		// kafka的统计数据清空
+		adaptiveStorm.kafkaMetric.reSetFiveSeconds(false);
+		controlSpeedNum = 0;
 	}
 
 	public synchronized static void addThroughput() {
@@ -291,6 +331,60 @@ public class AllTPCHProducer {
 		}
 	}
 
+	/**
+	 * 改变刷新频率
+	 * @param refreshTime
+	 */
+	public void changeRefreshInterval( int refreshTime) {
+		calThroughput.cancel();
+		calThroughput = new Timer();
+		calThroughtInterval = refreshTime;
+		/**
+		 * 用于计算2秒内的平均吞吐量
+		 */
+		calThroughput.schedule(new TimerTask() {
+
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				// LOG .info("latency : " + hm.get( "default"));
+
+				if (avgThroughout == 0) {
+					avgThroughout = (int) (spoutNum / (calThroughtInterval / 1000));
+					throughtNum = 1;
+					// 舍弃第一条数据
+					resetThroughput();
+					return ;
+				} else {
+					avgThroughout = (int) ((avgThroughout * throughtNum + spoutNum
+							/ (calThroughtInterval / 1000)) / (throughtNum + 1));
+					throughtNum++;
+				}
+				
+				adaptiveStorm.kafkaMetric.throughputSum.addAndGet(avgThroughout);
+				adaptiveStorm.kafkaMetric.metricNumber.incrementAndGet();
+				adaptiveStorm.logs[1].append("Kafka throughput (tuples/s): " + avgThroughout + "\n");
+				adaptiveStorm.logs[3].append("Kafka throughput (tuples/s): " + avgThroughout + "\n");
+				
+				RegularTimePeriod time = new Millisecond();
+				synchronized( adaptiveStorm.plots) {
+					adaptiveStorm.plots[0].dataRateSeries.add(time, avgThroughout/ 10000);
+					adaptiveStorm.plots[1].dataRateSeries.add(time , avgThroughout / 10000);
+					adaptiveStorm.plots[2].dataRateSeries.add(time , avgThroughout / 10000);
+					adaptiveStorm.plots[3].dataRateSeries.add(time, avgThroughout / 10000);
+				}
+				
+				//KeyedMessage<String, String> data = new KeyedMessage<String, String>(
+				//		intermediateTopic, "kafkaProducer," + avgThroughout);
+				// send intermediate data to kafka topic
+				//kafkaThroughputProducer.send(data);
+				//System.out.println("avg throughput: " + avgThroughout);
+				resetThroughput();
+			}
+
+		}, refreshTime, refreshTime);
+	}
+	
 	public synchronized static void resetThroughput() {
 		spoutNum = 0;
 	}

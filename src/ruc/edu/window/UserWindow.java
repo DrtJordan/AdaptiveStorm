@@ -105,13 +105,16 @@ public class UserWindow  extends ApplicationFrame implements ActionListener {
 	 */
 	private void initialize() {
 		// 初始化AdaptiveStorm
-		adaptiveStorm = new AdaptiveStorm();
+		adaptiveStorm = new AdaptiveStorm( this);
 
 		// 所有pane的母pane tabbedPane
 		JTabbedPane tp = new JTabbedPane();
 		// 子pane
-		JPanel panel_setting_1 = new SettingPanel(adaptiveStorm);		// 设置panel
-		JPanel panel_setting_2 = new SettingPanel(adaptiveStorm);
+		SettingPanel panel_setting_1 = new SettingPanel(adaptiveStorm);		// 设置panel
+		SettingPanel panel_setting_2 = new SettingPanel(adaptiveStorm);
+		panel_setting_1.setClonePanel(panel_setting_2);
+		panel_setting_2.setClonePanel(panel_setting_1);
+		
 		JPanel panel_CPUMem = new JPanel(new BorderLayout());			// CPU Memory图panel
 		JPanel panel_latencyThrou = new JPanel(new BorderLayout());	// latency 
 		//tp.addTab("Setting", panel_setting);
