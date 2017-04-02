@@ -37,7 +37,7 @@ public class GetStormUiMetrics {
 	private Client client = null;
 
 	public static void main(String[] args) {
-		System.out.println( "spout Latency: " + new GetStormUiMetrics("192.168.0.17").getSpoutLatency());
+		System.out.println( "spout Latency: " + new GetStormUiMetrics("192.168.0.100").getSpoutLatency());
 	}
 	
 	public GetStormUiMetrics( String nimbusAddr) {

@@ -73,6 +73,7 @@ public class Mlmodel {
 	// retrain the model
 	public void updateModel(Map<String, Long> values) {
 		// actually not really update the model , just write new sample to training set
+		System.out.println("write new samples");
 		long spoutRate = values.get("spoutRate");
 		long onBoltRate = values.get("onBoltRate");
 		long joinBoltRate = values.get("joinBoltRate");
@@ -81,8 +82,7 @@ public class Mlmodel {
 			String data = ""+onBoltRate + comma + joinBoltRate + comma + spoutRate + comma
 					+ values.get("supervisors") +comma + values.get("cpucores")+ comma + values.get("memory") 
 					+ comma + values.get("workers") + comma + values.get("onBoltNumber") +comma
-					+ values.get("joinBoltNumber") + comma + values.get("kafkaBrokers") + comma
-					+ values.get("kafkaPartitions") + comma
+					+ values.get("joinBoltNumber") + comma +
 					+ values.get("onBolt") + comma + values.get("joinBolt") + comma + values.get("spouts")
 					+ comma + values.get("windowLength") + comma + values.get("emitFrenquency")
 					+ comma + values.get("cpuUsed") + comma

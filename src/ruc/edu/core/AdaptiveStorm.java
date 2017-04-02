@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -39,11 +40,11 @@ public class AdaptiveStorm {
 
 	public AdaptiveStorm adaptiveStorm = null;
 	String groupId = UUID.randomUUID().toString();
-	String zookeeper1 = "192.168.0.19:2181,192.168.0.21:2181,192.168.0.22:2181,192.168.0.23:2181"
-			+ ",192.168.0.24:2181";
-	String zookeeper2 = "192.168.0.100:2181,192.168.0.91:2181,192.168.0.92:2181,192.168.0.93:2181"
-			+ ",192.168.0.94:2181";
-	String drawTopic = "drawtopics";				// 接收画图的kafka topic
+	String zookeeper2 = "192.168.0.19:2181,192.168.0.21:2181,192.168.0.22:2181,192.168.0.23:2181"
+			+ ",192.168.0.25:2181";
+	//String zookeeper1 = "192.168.0.100:2181,192.168.0.91:2181,192.168.0.92:2181,192.168.0.93:2181"
+	//		+ ",192.168.0.94:2181";
+	String drawTopic = "drawtopic";				// 接收画图的kafka topic
 	//String tpchTemptopic = "tpchtemptopics";		// 接收是否改变配置的kafka topic
 	String oldAdaTopologyName = "tpchquery";
 	String oldEmpiricalTopologyName = "tpchquery";
@@ -79,6 +80,8 @@ public class AdaptiveStorm {
 	public ComponentMetric eJoinBoltMetric = null;
 	public ComponentMetric eKafkaMetric = null;
 	public Timer adaStormTimer = null;
+	public Timer randomConfTimer = null;
+	public Timer sampleCollectTimer = null;
 	public Timer drawTimer = null;				// 更新曲线线程
 	public Timer eDrawTimer = null;
 	
@@ -86,9 +89,11 @@ public class AdaptiveStorm {
 	public int spoutNum = 4;
 	public int onBoltNum = 8;
 	public int joinBoltNum = 16;
+	
 	public int windowLength = 30;
 	
 	public ApplicationFrame parentFrame = null;
+	public Map<String, Long> sample = new HashMap<String, Long>();
 	
 	public AdaptiveStorm( ApplicationFrame parentFrame) {
 		this.parentFrame = parentFrame;
@@ -102,8 +107,20 @@ public class AdaptiveStorm {
 		eJoinBoltMetric = new ComponentMetric();
 		eKafkaMetric = new ComponentMetric();
 		adaStormTimer = new Timer();
+		randomConfTimer = new Timer();
 		drawTimer = new Timer();
 		eDrawTimer = new Timer();
+		sampleCollectTimer = new Timer();
+		
+
+		sample.put("supervisors", (long)4);
+		sample.put("cpucores", (long)40);
+		sample.put("memory", (long)160);
+		sample.put("onBoltNumber", (long)4);
+		sample.put("joinBoltNumber", (long)2);
+		sample.put("emitFrenquency", (long)10);
+		sample.put("windowLength", (long)30);
+		sample.put("emitFrenquency", (long)10);
 	}
 	
 	public void setLogPanels(JTextArea[] logs, MJFreeChartPanel[] plots ) {
@@ -115,9 +132,9 @@ public class AdaptiveStorm {
 	 */
 	public void startStorm( String jarFileName) {
 		this.jarFileName = jarFileName;
-		consumer1 = kafka.consumer.Consumer
+		/*consumer1 = kafka.consumer.Consumer
 				.createJavaConsumerConnector(createConsumerConfig(zookeeper1,
-						groupId));
+						groupId));*/
 		consumer2 = kafka.consumer.Consumer
 				.createJavaConsumerConnector(createConsumerConfig(zookeeper2,
 						groupId));
@@ -125,7 +142,7 @@ public class AdaptiveStorm {
 		mlModel = new Mlmodel();
 		Process process;
 		try {
-			process = Runtime
+			/*process = Runtime
 					.getRuntime()
 					.exec(new String[] {
 							"bash",
@@ -135,7 +152,7 @@ public class AdaptiveStorm {
 									+ " storm.starter.TPCHQuery3 tpchquery " + workerNum + " " + spoutNum + " "
 									+ onBoltNum + " " + joinBoltNum + " " + windowLength
 									+ " 10 false && exit\" "});
-			process.waitFor();
+			process.waitFor();*/
 			// 进入empirical集群并开启storm
 			process = Runtime
 					.getRuntime()
@@ -162,18 +179,18 @@ public class AdaptiveStorm {
 		topicCountMap1.put(drawTopic, new Integer(1));
 		topicCountMap2.put(drawTopic, new Integer(1));
 		//topicCountMap.put(tpchTemptopic, new Integer(1));
-		Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap1 = consumer1
-				.createMessageStreams(topicCountMap1);
+		/*Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap1 = consumer1
+				.createMessageStreams(topicCountMap1);*/
 		Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap2 = consumer2
 				.createMessageStreams(topicCountMap2);
-		List<KafkaStream<byte[], byte[]>> streams1 = consumerMap1.get(drawTopic);
+		//List<KafkaStream<byte[], byte[]>> streams1 = consumerMap1.get(drawTopic);
 		List<KafkaStream<byte[], byte[]>> streams2 = consumerMap2.get(drawTopic);
 		//List<KafkaStream<byte[], byte[]>> streams2 = consumerMap.get(tpchTemptopic);
 		
 		//collectSamples.startCollect();	// upload storm topology
 		// now launch all the threads
 		//
-		executor1 = Executors.newFixedThreadPool(1);
+		//executor1 = Executors.newFixedThreadPool(1);
 		executor2 = Executors.newFixedThreadPool(1);
 		//executor2 = Executors.newFixedThreadPool(1);
 
@@ -181,11 +198,11 @@ public class AdaptiveStorm {
 		//
 		int threadNumber = 0;
 		
-		for (final KafkaStream<byte[], byte[]> stream : streams1) {
+		/*for (final KafkaStream<byte[], byte[]> stream : streams1) {
 			executor1.submit(new DrawConsumerRunner(stream, threadNumber, new ComponentMetric[]{ spoutMetric,
 					onBoltMetric, joinBoltMetric, kafkaMetric}, this, false));
 			threadNumber++;
-		}
+		}*/
 		// 开启empirical集群的kafka中间数据收集线程
 		for (final KafkaStream<byte[], byte[]> stream : streams2) {
 			executor2.submit(new DrawConsumerRunner(stream, threadNumber, new ComponentMetric[]{ eSpoutMetric,
@@ -198,6 +215,7 @@ public class AdaptiveStorm {
 			threadNumber++;
 		}*/
 		//collectSamples = new CollectThroughputSamples();
+		startCollectionSample();
 	}
 
 	public void shutdown() {
@@ -267,7 +285,7 @@ public class AdaptiveStorm {
 									+ " storm.starter.TPCHQuery3 "
 									+ newTopologyName + " "
 									+ args[0] + " " + args[3] + " " + args[1]
-									+ " " + args[2] + " 60 10 false && ./apache-storm-0.9.5/bin/storm "
+									+ " " + args[2] + " 30 10 false && ./apache-storm-0.9.5/bin/storm "
 											+ "kill "+ oldAdaTopologyName + " && exit\" "});
 			
 			process.waitFor();
@@ -344,6 +362,122 @@ public class AdaptiveStorm {
 		adaStormTimer.schedule(new ChooseOPTimerTask( new ComponentMetric[]{ spoutMetric,
 				onBoltMetric, joinBoltMetric, kafkaMetric}, adaptiveStorm), 18000,
 				18000);
+	}
+	
+	public void scheduleSampleCollect() {
+		sampleCollectTimer.cancel();
+		sampleCollectTimer = new Timer();
+		sampleCollectTimer.schedule(new TimerTask() {
+			boolean isFirst = true;
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				if( !isFirst) {
+					long onThroughput = eOnBoltMetric.getAvgThrMinutes();
+					long joinThroughput = eJoinBoltMetric.getAvgThrMinutes();
+					long spoutThroughput = eSpoutMetric.getAvgThrMinutes();
+					int avgCPU = ( eSpoutMetric.getAvgCpuMetricMinutes() + eOnBoltMetric.getAvgCpuMetricMinutes() +
+							eJoinBoltMetric.getAvgCpuMetricMinutes() ) / 3;
+					int avgMem = (int) (( eSpoutMetric.getAvgMemoryMetricMinutes() + eOnBoltMetric.getAvgMemoryMetricMinutes() +
+							eJoinBoltMetric.getAvgMemoryMetricMinutes())) ;
+					
+					// 将结果写入文件中
+					sample.put("workers", (long)workerNum);
+					sample.put("onBolt", (long)onBoltNum);
+					sample.put("joinBolt", (long)joinBoltNum);
+					sample.put("spouts", (long)spoutNum);
+					sample.put("spoutRate", spoutThroughput);
+					sample.put("onBoltRate", onThroughput);
+					sample.put("joinBoltRate", joinThroughput);
+					sample.put("cpuUsed", (long) avgCPU);
+					sample.put("memoryUsage", (long) avgMem);
+					sample.put("latency", Math.round(
+							new GetStormUiMetrics( "192.168.0.100").getSpoutLatency()));
+					
+					// update the ml model according to new sample
+					mlModel.updateModel(sample);
+				}
+				else {
+					isFirst = false;
+				}
+				
+				// 清空统计数据
+				eKafkaMetric.reSetFiveSeconds(false);
+				eSpoutMetric.reSetMinutes();
+				eOnBoltMetric.reSetMinutes();
+				eJoinBoltMetric.reSetMinutes();
+			}
+			
+		}, 20000, 300000);
+	}
+	
+	public void startCollectionSample() {
+		spoutMetric.reSetMinutes();
+		onBoltMetric.reSetMinutes();
+		joinBoltMetric.reSetMinutes();
+		kafkaMetric.reSetMinutes();
+		scheduleSampleCollect();
+		// 每半小时改变一次配置
+		randomConfTimer.schedule(new TimerTask() {
+
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				sampleCollectTimer.cancel();
+				// 清空统计数据
+				//CollectThroughputSamples.sampleFinished.release();
+				// new random configuration
+				Random random = new Random();
+				workerNum = 4 + random.nextInt(50);
+				spoutNum = 4 + random.nextInt(20);
+				onBoltNum = 4 + random.nextInt(20);
+				joinBoltNum = 4 + random.nextInt(20);
+				
+				Process process;
+				try {
+					String newTopologyName = "tpchquery"+ UUID.randomUUID().toString();
+					process = Runtime
+							.getRuntime()
+							.exec(new String[] {
+									"bash",
+									"-c",
+									"ssh wamdm90 \"source /etc/profile ; cd ~/wengzujian/ ;"
+											+ "./apache-storm-0.9.5/bin/storm "
+													+ "kill "+ oldAdaTopologyName + " && exit\" "});
+					
+					process.waitFor();
+					Thread.sleep(30000);
+					
+					process = Runtime
+							.getRuntime()
+							.exec(new String[] {
+									"bash",
+									"-c",
+									"ssh 192.168.0.100 \"source /etc/profile ; cd ~/wengzujian/ ;"
+											+ "storm jar " + jarFileName
+											+ " storm.starter.TPCHQuery3 " 
+											+ newTopologyName + " " + workerNum + " " + spoutNum + " "
+											+ onBoltNum + " " + joinBoltNum + " "
+											+ " 30 10 false && exit\" "});
+					
+					process.waitFor();
+					oldAdaTopologyName = newTopologyName;
+
+					eKafkaMetric.reSetFiveSeconds(false);
+					eSpoutMetric.reSetMinutes();
+					eOnBoltMetric.reSetMinutes();
+					eJoinBoltMetric.reSetMinutes();
+					scheduleSampleCollect();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+		}, 1800000, 1800000);
 	}
 
 }

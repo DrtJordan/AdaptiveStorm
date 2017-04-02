@@ -195,6 +195,8 @@ public class SettingPanel extends JPanel implements ActionListener{
 				new Thread(new Runnable() {
 		           public void run() {
 		               // 启动后台线程  并显示 loading对话框
+		        	   // 开始random配置
+		        	   
 		        	   producer = new AllTPCHProducer( adaptiveStorm);
 		        	   producer.startProducing();
 						// 开启自动配置定时器任务

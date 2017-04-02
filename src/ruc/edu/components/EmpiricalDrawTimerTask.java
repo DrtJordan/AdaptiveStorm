@@ -39,8 +39,8 @@ public class EmpiricalDrawTimerTask extends TimerTask {
 				joinBoltMetric.getAvgMemoryMetric() ) / 600) ;
 		long throughput = spoutMetric.getAvgThr() / 10000;
 		//long kafka = kafkaMetric.getAvgThr() / 10000;
-		//System.out.println(" cpu:" + avgCPU + " avgMem:" + avgMem + 
-		//		" throughput:" + throughput);
+		/*System.out.println("spout cpu:" + avgCPU + " avgMem:" + avgMem + 
+				" throughput:" + throughput);*/
 		// 4条曲线都需要添加kafka的数据速率
 		RegularTimePeriod time = new Millisecond();
 		/*plots[0].dataRateSeries.add(time, kafka);

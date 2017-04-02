@@ -75,12 +75,12 @@ public class DrawConsumerRunner implements Runnable{
 				
 				String data = new String(it.next().message());
 				data = data.replaceAll("\n", "");
+				// System.out.println(data);
 				if( isError) {
 					continue;
 				}
 				// process received data
 				String[] datas = data.split(",");
-				//System.out.println(data);
 				
 				switch( datas[0]) {
 				/*case "kafkaProducer":
@@ -93,6 +93,7 @@ public class DrawConsumerRunner implements Runnable{
 					logs[3].append("kafka throughput: " + kafkaThroughput + "\n");
 					break;*/
 				case "spoutDraw":
+					//System.out.println("spout through:" + Integer.valueOf(datas[2]));
 					spoutMetric.taskCount = Integer.valueOf(datas[1]);
 					spoutMetric.cpuUsage.addAndGet((int) (Double.valueOf( datas[3]) * 100));
 					spoutMetric.memoryUsage.addAndGet(Long.valueOf(datas[4]).intValue());

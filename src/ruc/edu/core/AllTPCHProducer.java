@@ -45,9 +45,9 @@ public class AllTPCHProducer {
 	static int controlSpeedNum = 0;				// 用于控制发送速率
 	
 	static int[] sharkChange = {0,1,2,3,4,5,6,7,8,9};
-	static String customerTopicName = "customer_test";
-	static String lineitemTopicName = "lineitem_test";
-	static String orderTopicName = "order_test";
+	static String customerTopicName = "customer";
+	static String lineitemTopicName = "lineitem";
+	static String orderTopicName = "order";
 	
 	public AdaptiveStorm adaptiveStorm = null;
 	public Timer calThroughput = null;
@@ -71,7 +71,7 @@ public class AllTPCHProducer {
 		// the brokers. Change this to suit your deployment.
 		props1.put("metadata.broker.list",
 				"192.168.0.19:9092,192.168.0.21:9092,192.168.0.22:9092,"
-				+ "192.168.0.23:9092,192.168.0.24:9092");
+				+ "192.168.0.23:9092,192.168.0.25:9092");
 		props2.put("metadata.broker.list",
 				"192.168.0.100:9092,192.168.0.91:9092,192.168.0.92:9092,"
 				+ "192.168.0.93:9092,192.168.0.94:9092");
