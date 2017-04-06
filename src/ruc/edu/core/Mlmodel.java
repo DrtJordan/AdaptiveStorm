@@ -49,7 +49,7 @@ public class Mlmodel {
 		try {
 			// append write
 			fos = new FileOutputStream(
-					"addedSamples.arff", true);
+					"addedSamples_throughput_latency.arff", true);
 			sampleWriter = new BufferedWriter(
 					new OutputStreamWriter(fos, "utf-8"));
 			
