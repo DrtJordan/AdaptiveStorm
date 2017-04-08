@@ -57,6 +57,7 @@ public class MJFreeChartPanel {
 	    final ValueAxis axis = plot.getDomainAxis();
 	    plot.getRangeAxis().setAutoRange(false);
 	    axis.setAutoRange(true);		// 不滑动
+	    //axis.setFixedAutoRange(600000.0);
 	    // 设置第二个y轴以及对应的数据库
           
 	    // 设置3条线的颜色

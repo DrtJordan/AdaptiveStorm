@@ -105,10 +105,12 @@ public class DynamicDataDemo2 extends ApplicationFrame implements ActionListener
         plot.setBackgroundPaint(Color.white);
         plot.setDomainGridlinePaint(Color.gray);
         plot.setRangeGridlinePaint(Color.gray);
+        plot.setDomainPannable(true);
   //      plot.setAxisOffset(new Spacer(Spacer.ABSOLUTE, 4, 4, 4, 4));
         final ValueAxis axis = plot.getDomainAxis();
         axis.setAutoRange(true);
-        //axis.setFixedAutoRange(60000.0);  // 60 seconds
+        //axis.setAutoRangeMinimumSize(600000.0);
+        axis.setFixedAutoRange(5000.0);  // 60 seconds
 
         plot.setDataset(1, dataset2);
         //final NumberAxis rangeAxis2 = new NumberAxis("Range Axis 2");

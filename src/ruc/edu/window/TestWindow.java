@@ -149,7 +149,7 @@ public class TestWindow {
 							.exec(new String[] {
 									"bash",
 									"-c",
-									"ssh wamdm7 \"source /etc/profile ; cd ~/wengzujian/ ;"
+									"ssh 192.168.0.100 \"source /etc/profile ; cd ~/wengzujian/ ;"
 											+ "storm jar StormTest-0.0.1-SNAPSHOT-jar-with-dependencies.jar "
 											+ "storm.starter.TPCHQuery3 tpchquery 12 12 12 12 30 10 && exit\" " });
 					BufferedReader input = new BufferedReader(

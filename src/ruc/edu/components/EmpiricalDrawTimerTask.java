@@ -60,7 +60,7 @@ public class EmpiricalDrawTimerTask extends TimerTask {
 			
 			// 添加latency数据
 			plots[3].empiricalSeries.add(time ,  Math.round(
-					new GetStormUiMetrics( "192.168.0.100").getSpoutLatency()));
+					new GetStormUiMetrics( "192.168.0.95").getSpoutLatency()));
 		}
 		// 清空5秒钟的数据
 		spoutMetric.reSetFiveSeconds(true);

@@ -63,7 +63,7 @@ public class DrawTimerTask extends TimerTask {
 			// 添加latency数据
 			plots[3].userDefinedSeries.add(time , adaptiveStorm.maxLatency);
 			plots[3].adaStormSeries.add(time ,  Math.round(
-					new GetStormUiMetrics("192.168.0.17").getSpoutLatency()));
+					new GetStormUiMetrics("192.168.0.100").getSpoutLatency()));
 		}
 		// 清空5秒钟的数据
 		spoutMetric.reSetFiveSeconds(true);

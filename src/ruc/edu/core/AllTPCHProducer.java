@@ -73,8 +73,8 @@ public class AllTPCHProducer {
 				"192.168.0.19:9092,192.168.0.21:9092,192.168.0.22:9092,"
 				+ "192.168.0.23:9092,192.168.0.25:9092");
 		props2.put("metadata.broker.list",
-				"192.168.0.100:9092,192.168.0.91:9092,192.168.0.92:9092,"
-				+ "192.168.0.93:9092,192.168.0.94:9092");
+				"192.168.0.73:9092,192.168.0.74:9092,192.168.0.75:9092,"
+				+ "192.168.0.76:9092,192.168.0.77:9092");
 		// props.put("partitioner.class",
 		// "storm.starter.kafka.SimplePartitioner");
 		// Serializer used for sending data to kafka. Since we are sending

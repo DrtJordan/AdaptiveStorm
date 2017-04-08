@@ -81,7 +81,7 @@ public class SettingPanel extends JPanel implements ActionListener{
 		JLabel label_1 = new JLabel("Threshold of Max Different Rates (Tuples/s):");
 		add(label_1);
 		
-		maxDRate = new JTextField("30000");
+		maxDRate = new JTextField("40000");
 		add(maxDRate);
 		maxDRate.setColumns(10);
 		
@@ -89,7 +89,7 @@ public class SettingPanel extends JPanel implements ActionListener{
 		JLabel lblDistanceOfTwo = new JLabel("Checkpoints Interval (Secs):");
 		add(lblDistanceOfTwo);
 		
-		checkPoints = new JTextField("18");
+		checkPoints = new JTextField("30");
 		add(checkPoints);
 		checkPoints.setColumns(10);
 		
@@ -97,7 +97,7 @@ public class SettingPanel extends JPanel implements ActionListener{
 		JLabel lblLatencyDeadline = new JLabel("Latency Deadline (ms):");
 		add(lblLatencyDeadline);
 		
-		maxLatency = new JTextField("1000");
+		maxLatency = new JTextField("1500");
 		add(maxLatency);
 		maxLatency.setColumns(10);
 		

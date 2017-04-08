@@ -260,10 +260,10 @@ public class Mlmodel {
 			try {
 				// load data
 				clusterMetricData = DataSource
-						.read("Weka Files/v2.0/clusterMetricARFF.arff");
+						.read("Weka Files/icde/clusterMetricARFF.arff");
 				clusterThroughputData = DataSource
-						.read("Weka Files/clusterMetricARFF_withOnBolt.arff");
-				latencyData = DataSource.read("Weka Files/clusterMetricARFF_withLatency.arff");
+						.read("Weka Files/icde/clusterMetricARFF_withOnBolt.arff");
+				latencyData = DataSource.read("Weka Files/icde/clusterMetricARFF_withLatency.arff");
 				
 				// train the latency model
 				latencyData.setClassIndex(latencyData.numAttributes() - 1);
@@ -535,7 +535,7 @@ public class Mlmodel {
 									}*/
 									
 									
-									if( throughputResult[1] > 0.90 && cpuResult 
+									if( throughputResult[1] > 0.95 && cpuResult 
 											+ (memoryResult / 1600) < lowestCPUAndMemory) {
 										// find better parameters
 										throughputConfident = (int) (throughputResult[1] * 100);
