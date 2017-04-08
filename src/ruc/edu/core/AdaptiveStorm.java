@@ -40,11 +40,11 @@ public class AdaptiveStorm {
 
 	public AdaptiveStorm adaptiveStorm = null;
 	String groupId = UUID.randomUUID().toString();
-	String zookeeper2 = "192.168.0.19:2181,192.168.0.21:2181,192.168.0.22:2181,192.168.0.23:2181"
+	String zookeeper1 = "192.168.0.19:2181,192.168.0.21:2181,192.168.0.22:2181,192.168.0.23:2181"
 			+ ",192.168.0.25:2181";
-	//String zookeeper1 = "192.168.0.100:2181,192.168.0.91:2181,192.168.0.92:2181,192.168.0.93:2181"
-	//		+ ",192.168.0.94:2181";
-	String drawTopic = "drawtopic";				// 接收画图的kafka topic
+	String zookeeper2 = "192.168.0.73:2181,192.168.0.74:2181,192.168.0.75:2181,192.168.0.76:2181"
+			+ ",192.168.0.77:2181";
+	String drawTopic = "drawtopics";				// 接收画图的kafka topic
 	//String tpchTemptopic = "tpchtemptopics";		// 接收是否改变配置的kafka topic
 	String oldAdaTopologyName = "tpchquery";
 	String oldEmpiricalTopologyName = "tpchquery";
@@ -53,9 +53,9 @@ public class AdaptiveStorm {
 	String regressionAlg = "J48";
 	String classifiAlg = "Multilayer Perceptron";
 	public int collecInterval = 3;
-	public int maxDRate = 30000;
+	public int maxDRate = 40000;
 	public int checkpoints = 2;
-	public int maxLatency = 1000;
+	public int maxLatency = 1500;
 	public int dataRateLevel = 1;
 
 	private ConsumerConnector consumer1;
@@ -85,11 +85,10 @@ public class AdaptiveStorm {
 	public Timer drawTimer = null;				// 更新曲线线程
 	public Timer eDrawTimer = null;
 	
-	public int workerNum = 25;
+	public int workerNum = 35;
 	public int spoutNum = 4;
 	public int onBoltNum = 8;
-	public int joinBoltNum = 16;
-	
+	public int joinBoltNum = 12;
 	public int windowLength = 30;
 	
 	public ApplicationFrame parentFrame = null;
@@ -147,7 +146,7 @@ public class AdaptiveStorm {
 					.exec(new String[] {
 							"bash",
 							"-c",
-							"ssh wamdm7 \"source /etc/profile ; cd ~/wengzujian/ ;"
+							"ssh 192.168.0.100 \"source /etc/profile ; cd ~/wengzujian/ ;"
 									+ "storm jar " + jarFileName
 									+ " storm.starter.TPCHQuery3 tpchquery " + workerNum + " " + spoutNum + " "
 									+ onBoltNum + " " + joinBoltNum + " " + windowLength
@@ -159,7 +158,7 @@ public class AdaptiveStorm {
 					.exec(new String[] {
 							"bash",
 							"-c",
-							"ssh 192.168.0.100 \"source /etc/profile ; cd ~/wengzujian/ ;"
+							"ssh 192.168.0.95 \"source /etc/profile ; cd ~/wengzujian/ ;"
 									+ "storm jar " + jarFileName
 									+ " storm.starter.TPCHQuery3 tpchquery " +workerNum + " " + spoutNum + " "
 									+ onBoltNum + " " + joinBoltNum + " " + windowLength
@@ -247,8 +246,8 @@ public class AdaptiveStorm {
 		Properties props = new Properties();
 		props.put("zookeeper.connect", a_zookeeper);
 		props.put("group.id", a_groupId);
-		props.put("zookeeper.session.timeout.ms", "400");
-		props.put("zookeeper.sync.time.ms", "200");
+		props.put("zookeeper.session.timeout.ms", "1000");
+		props.put("zookeeper.sync.time.ms", "1000");
 		props.put("auto.commit.interval.ms", "1000");
 
 		return new ConsumerConfig(props);
@@ -280,7 +279,7 @@ public class AdaptiveStorm {
 					.exec(new String[] {
 							"bash",
 							"-c",
-							"ssh wamdm7 \"source /etc/profile ; cd ~/wengzujian/ ;"
+							"ssh 192.168.0.100 \"source /etc/profile ; cd ~/wengzujian/ ;"
 									+ "storm jar " + jarFileName 
 									+ " storm.starter.TPCHQuery3 "
 									+ newTopologyName + " "
@@ -322,7 +321,7 @@ public class AdaptiveStorm {
 					.exec(new String[] {
 							"bash",
 							"-c",
-							"ssh 192.168.0.100 \"source /etc/profile ; cd ~/wengzujian/ ;"
+							"ssh 192.168.0.95 \"source /etc/profile ; cd ~/wengzujian/ ;"
 									+ "storm jar " + jarFileName
 									+ " storm.starter.TPCHQuery3 "+ newTopologyName + " "
 									+ workerNum + " " + spoutNum + " "
@@ -360,8 +359,8 @@ public class AdaptiveStorm {
 		joinBoltMetric.reSetMinutes();
 		kafkaMetric.reSetMinutes();
 		adaStormTimer.schedule(new ChooseOPTimerTask( new ComponentMetric[]{ spoutMetric,
-				onBoltMetric, joinBoltMetric, kafkaMetric}, adaptiveStorm), 18000,
-				18000);
+				onBoltMetric, joinBoltMetric, kafkaMetric}, adaptiveStorm), 30000,
+				30000);
 	}
 	
 	public void scheduleSampleCollect() {
